@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:background="#2C322F"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp"
+    android:gravity="center">
+
+    <!-- Home Button -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <ImageButton
+            android:id="@+id/home_button"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:src="@drawable/icon_home"
+            android:scaleType="centerInside"
+            app:tint="#D7D7D7"
+            android:contentDescription="Home" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Home"
+            android:textColor="#D7D7D7"
+            android:textSize="12sp"
+            android:paddingTop="4dp"/>
+    </LinearLayout>
+
+    <!-- Discover Button -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <ImageButton
+            android:id="@+id/discover_button"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:src="@drawable/icon_discover"
+            android:scaleType="centerInside"
+            app:tint="#D7D7D7"
+            android:contentDescription="Discover" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Discover"
+            android:textColor="#D7D7D7"
+            android:textSize="12sp"
+            android:paddingTop="4dp"/>
+    </LinearLayout>
+
+    <!-- Settings Button -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <ImageButton
+            android:id="@+id/settings_button"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:src="@drawable/icon_settings"
+            android:scaleType="centerInside"
+            app:tint="#D7D7D7"
+            android:contentDescription="Settings" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Settings"
+            android:textColor="#D7D7D7"
+            android:textSize="12sp"
+            android:paddingTop="4dp"/>
+    </LinearLayout>
+</LinearLayout>
