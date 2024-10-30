@@ -171,6 +171,8 @@ class SavedRecipiesPage : AppCompatActivity() {
         if (imageUri != null) {
             // Display the selected image if available
             itemImage.setImageURI(imageUri)
+            // clear the selected image URI
+            selectedImageUri = null
         } else {
             // Use InitialsDrawable to display the first letter in a circular background
             val initialLetter = newName.firstOrNull()?.uppercaseChar().toString()
@@ -182,30 +184,6 @@ class SavedRecipiesPage : AppCompatActivity() {
         // Add the new item card before the "New Category" card
         val newCategoryCardIndex = cardContainer.indexOfChild(findViewById(R.id.new_category_card))
         cardContainer.addView(newItemCard, newCategoryCardIndex)
-    }
-
-
-    // Helper function to create a TextDrawable with the first letter of the category name
-    private fun createTextDrawable(letter: String): Drawable {
-        val drawable = ContextCompat.getDrawable(this, R.drawable.default_circle_background)!!.mutate()
-        val tintedDrawable = DrawableCompat.wrap(drawable)
-        DrawableCompat.setTint(tintedDrawable, Color.DKGRAY) // Adjust color as needed
-
-        // Add the letter as text over the drawable
-        val canvas = Canvas()
-        val paint = Paint().apply {
-            color = Color.WHITE
-            textSize = 32f // Adjust text size as needed
-            isAntiAlias = true
-            textAlign = Paint.Align.CENTER
-        }
-        val bounds = Rect()
-        paint.getTextBounds(letter, 0, letter.length, bounds)
-        val x = drawable.intrinsicWidth / 2
-        val y = (drawable.intrinsicHeight / 2) - ((paint.descent() + paint.ascent()) / 2)
-        canvas.drawText(letter, x.toFloat(), y, paint)
-
-        return tintedDrawable
     }
 
 
