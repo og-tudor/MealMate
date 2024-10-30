@@ -25,7 +25,7 @@
             android:background="?android:attr/selectableItemBackground"
             android:src="@drawable/icon_home"
             android:scaleType="centerInside"
-            app:tint="#D7D7D7"
+            app:tint="@color/button_tint_selector"
             android:contentDescription="Home" />
 
         <TextView
@@ -52,7 +52,7 @@
             android:background="?android:attr/selectableItemBackground"
             android:src="@drawable/icon_discover"
             android:scaleType="centerInside"
-            app:tint="#D7D7D7"
+            app:tint="@color/button_tint_selector"
             android:contentDescription="Discover" />
 
         <TextView
@@ -79,7 +79,7 @@
             android:background="?android:attr/selectableItemBackground"
             android:src="@drawable/icon_settings"
             android:scaleType="centerInside"
-            app:tint="#D7D7D7"
+            app:tint="@color/button_tint_selector"
             android:contentDescription="Settings" />
 
         <TextView
