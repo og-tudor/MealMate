@@ -42,18 +42,6 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:padding="8dp">
-
-            <include layout="@layout/item_card" />
-            <include layout="@layout/item_card" />
-            <include layout="@layout/item_card" />
-            <include layout="@layout/item_card" />
-            <include layout="@layout/item_card" />
-            <include layout="@layout/item_card" />
-            <include layout="@layout/item_card" />
-            <include layout="@layout/item_card" />
-            <include layout="@layout/item_card" />
-            <include layout="@layout/item_card" />
-            <include layout="@layout/item_card" />
             <include
                 android:id="@+id/new_category_card"
                 layout="@layout/item_card_new_category" />
