@@ -22,6 +22,8 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import java.io.File
+import java.io.FileOutputStream
 
 class SavedRecipiesPage : AppCompatActivity() {
 
@@ -71,7 +73,7 @@ class SavedRecipiesPage : AppCompatActivity() {
         loadCategoriesFromFirestore()
     }
 
-    // Function to load categories from Firestore
+    // Function to load categories from Firestore in alphabetical order
     private fun loadCategoriesFromFirestore() {
         val currentUser = auth.currentUser
         if (currentUser == null) {
@@ -82,12 +84,13 @@ class SavedRecipiesPage : AppCompatActivity() {
         val userId = currentUser.uid
         val categoriesRef = db.collection("users").document(userId).collection("categories")
 
-        categoriesRef.get()
+        // Use orderBy to sort the documents by the "name" field in alphabetical order
+        categoriesRef.orderBy("name").get()
             .addOnSuccessListener { documents ->
                 for (document in documents) {
                     val categoryName = document.getString("name") ?: ""
-                    val imageUriString = document.getString("imageUri") ?: ""
-                    val imageUri = if (imageUriString.isNotEmpty()) Uri.parse(imageUriString) else null
+                    val filePath = document.getString("imageUri") ?: ""
+                    val imageUri = if (filePath.isNotEmpty()) Uri.fromFile(File(filePath)) else null
 
                     // Add the category to the UI
                     addNewItemCard(categoryName, imageUri)
@@ -97,6 +100,7 @@ class SavedRecipiesPage : AppCompatActivity() {
                 Toast.makeText(this, "Error fetching categories: ${e.message}", Toast.LENGTH_SHORT).show()
             }
     }
+
 
     private val imagePickerLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -136,10 +140,20 @@ class SavedRecipiesPage : AppCompatActivity() {
         saveButton.setOnClickListener {
             val newCategoryName = editTextName.text.toString().trim()
             if (newCategoryName.isNotEmpty()) {
-                // Save the category to Firestore
-                saveCategoryToFirestore(newCategoryName, selectedImageUri)
-                addNewItemCard(newCategoryName, selectedImageUri)
+                if (selectedImageUri != null) {
+                    val filePath = copyImageToLocalStorage(selectedImageUri!!)
+                    if (filePath != null) {
+                        saveCategoryToFirestore(newCategoryName, filePath)
+                    } else {
+                        Toast.makeText(this, "Failed to save image locally", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    saveCategoryToFirestore(newCategoryName, null)
+                }
                 dialog.dismiss()
+                // Refresh the categories without restarting the activity
+                refreshCategories()
+
             }
         }
 
@@ -147,7 +161,37 @@ class SavedRecipiesPage : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun saveCategoryToFirestore(categoryName: String, imageUri: Uri?) {
+    private fun refreshCategories() {
+        // Iterate over the views in cardContainer and remove all views except the "New Category" card
+        for (i in cardContainer.childCount - 1 downTo 0) {
+            val childView = cardContainer.getChildAt(i)
+            if (childView.findViewById<TextView>(R.id.item_title)?.text != "New Category") {
+                cardContainer.removeViewAt(i)
+            }
+        }
+
+        // Reload categories from Firestore
+        loadCategoriesFromFirestore()
+    }
+
+
+    // Function to copy the image to local storage
+    private fun copyImageToLocalStorage(uri: Uri): String? {
+        return try {
+            val inputStream = contentResolver.openInputStream(uri) ?: return null
+            val file = File(filesDir, "${System.currentTimeMillis()}.jpg")
+            val outputStream = FileOutputStream(file)
+            inputStream.copyTo(outputStream)
+            inputStream.close()
+            outputStream.close()
+            file.absolutePath
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    private fun saveCategoryToFirestore(categoryName: String, filePath: String?) {
         val currentUser = auth.currentUser
         if (currentUser == null) {
             Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show()
@@ -159,7 +203,7 @@ class SavedRecipiesPage : AppCompatActivity() {
 
         val categoryData = hashMapOf(
             "name" to categoryName,
-            "imageUri" to (imageUri?.toString() ?: "")  // Save image URI as a string
+            "imageUri" to (filePath ?: "")
         )
 
         categoriesRef.add(categoryData)
@@ -169,6 +213,34 @@ class SavedRecipiesPage : AppCompatActivity() {
             .addOnFailureListener { e ->
                 Toast.makeText(this, "Error adding category: ${e.message}", Toast.LENGTH_SHORT).show()
             }
+    }
+
+    private fun addNewItemCard(newName: String, imageUri: Uri?) {
+        val inflater = LayoutInflater.from(this)
+        val newItemCard = inflater.inflate(R.layout.item_card, cardContainer, false)
+
+        val itemTitle = newItemCard.findViewById<TextView>(R.id.item_title)
+        val itemImage = newItemCard.findViewById<ImageView>(R.id.item_image)
+
+        itemTitle.text = newName
+
+        if (imageUri != null) {
+            try {
+                val bitmap = BitmapFactory.decodeFile(imageUri.path)
+                itemImage.setImageBitmap(bitmap)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            val initialLetter = newName.firstOrNull()?.uppercaseChar().toString()
+            val initialsDrawable = InitialsDrawable(this, initialLetter)
+            initialsDrawable.color = Color.DKGRAY
+            itemImage.setImageDrawable(initialsDrawable)
+        }
+
+        val newCategoryCardIndex = cardContainer.indexOfChild(findViewById(R.id.new_category_card))
+        cardContainer.addView(newItemCard, newCategoryCardIndex)
     }
 
     private fun checkAndRequestPermission() {
@@ -204,37 +276,8 @@ class SavedRecipiesPage : AppCompatActivity() {
         imagePickerLauncher.launch(intent)
     }
 
-    private fun addNewItemCard(newName: String, imageUri: Uri?) {
-        val inflater = LayoutInflater.from(this)
-        val newItemCard = inflater.inflate(R.layout.item_card, cardContainer, false)
 
-        val itemTitle = newItemCard.findViewById<TextView>(R.id.item_title)
-        val itemImage = newItemCard.findViewById<ImageView>(R.id.item_image)
 
-        itemTitle.text = newName
-
-        if (imageUri != null) {
-            try {
-                // Use ContentResolver to get an InputStream
-                val inputStream = contentResolver.openInputStream(imageUri)
-                val bitmap = BitmapFactory.decodeStream(inputStream)
-                itemImage.setImageBitmap(bitmap)
-                inputStream?.close()
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show()
-            }
-            selectedImageUri = null
-        } else {
-            val initialLetter = newName.firstOrNull()?.uppercaseChar().toString()
-            val initialsDrawable = InitialsDrawable(this, initialLetter)
-            initialsDrawable.color = Color.DKGRAY
-            itemImage.setImageDrawable(initialsDrawable)
-        }
-
-        val newCategoryCardIndex = cardContainer.indexOfChild(findViewById(R.id.new_category_card))
-        cardContainer.addView(newItemCard, newCategoryCardIndex)
-    }
 
     private fun selectButton(selectedButton: ImageButton) {
         homeButton.isSelected = false
