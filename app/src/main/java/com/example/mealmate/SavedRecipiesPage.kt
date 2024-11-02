@@ -5,44 +5,44 @@ import android.Manifest
 import android.app.Dialog
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Canvas
+import android.graphics.BitmapFactory
 import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.Rect
-import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
-import android.widget.Button
-import android.widget.EditText
-import android.widget.ImageButton
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.graphics.drawable.DrawableCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 class SavedRecipiesPage : AppCompatActivity() {
+
+    // Firebase instances
+    private lateinit var auth: FirebaseAuth
+    private lateinit var db: FirebaseFirestore
 
     private lateinit var homeButton: ImageButton
     private lateinit var discoverButton: ImageButton
     private lateinit var settingsButton: ImageButton
     private lateinit var cardContainer: LinearLayout
     private lateinit var coverPhotoImage: ImageView
-    private var selectedImageUri: Uri? = null // Store selected image URI here
+    private var selectedImageUri: Uri? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.saved_recipies)
+
+        // Initialize Firebase
+        auth = FirebaseAuth.getInstance()
+        db = FirebaseFirestore.getInstance()
 
         // Initialize buttons and containers
         homeButton = findViewById(R.id.home_button)
@@ -57,9 +57,7 @@ class SavedRecipiesPage : AppCompatActivity() {
         settingsButton.setOnClickListener { selectButton(settingsButton) }
 
         // Apply window insets to padding for edge-to-edge display
-        ViewCompat.setOnApplyWindowInsetsListener(
-            findViewById(R.id.main)
-        ) { v, insets ->
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
@@ -67,9 +65,37 @@ class SavedRecipiesPage : AppCompatActivity() {
 
         // Find the "New Category" card
         val newCategoryCard = findViewById<View>(R.id.new_category_card)
-
-        // Set a click listener on the "New Category" card
         newCategoryCard.setOnClickListener { showAddCategoryDialog() }
+
+        // Load categories from Firestore
+        loadCategoriesFromFirestore()
+    }
+
+    // Function to load categories from Firestore
+    private fun loadCategoriesFromFirestore() {
+        val currentUser = auth.currentUser
+        if (currentUser == null) {
+            Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val userId = currentUser.uid
+        val categoriesRef = db.collection("users").document(userId).collection("categories")
+
+        categoriesRef.get()
+            .addOnSuccessListener { documents ->
+                for (document in documents) {
+                    val categoryName = document.getString("name") ?: ""
+                    val imageUriString = document.getString("imageUri") ?: ""
+                    val imageUri = if (imageUriString.isNotEmpty()) Uri.parse(imageUriString) else null
+
+                    // Add the category to the UI
+                    addNewItemCard(categoryName, imageUri)
+                }
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Error fetching categories: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
     }
 
     private val imagePickerLauncher = registerForActivityResult(
@@ -79,11 +105,7 @@ class SavedRecipiesPage : AppCompatActivity() {
             selectedImageUri = result.data?.data
             if (selectedImageUri != null) {
                 coverPhotoImage.setImageURI(selectedImageUri)
-
-                // Hide the "Upload a photo" text once an image is loaded
                 findViewById<TextView>(R.id.upload_text)?.visibility = View.GONE
-
-                // Expand the ImageView to fill the LinearLayout
                 coverPhotoImage.layoutParams.width = LinearLayout.LayoutParams.MATCH_PARENT
                 coverPhotoImage.layoutParams.height = LinearLayout.LayoutParams.MATCH_PARENT
                 coverPhotoImage.scaleType = ImageView.ScaleType.CENTER_CROP
@@ -114,6 +136,8 @@ class SavedRecipiesPage : AppCompatActivity() {
         saveButton.setOnClickListener {
             val newCategoryName = editTextName.text.toString().trim()
             if (newCategoryName.isNotEmpty()) {
+                // Save the category to Firestore
+                saveCategoryToFirestore(newCategoryName, selectedImageUri)
                 addNewItemCard(newCategoryName, selectedImageUri)
                 dialog.dismiss()
             }
@@ -121,6 +145,30 @@ class SavedRecipiesPage : AppCompatActivity() {
 
         cancelButton.setOnClickListener { dialog.dismiss() }
         dialog.show()
+    }
+
+    private fun saveCategoryToFirestore(categoryName: String, imageUri: Uri?) {
+        val currentUser = auth.currentUser
+        if (currentUser == null) {
+            Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val userId = currentUser.uid
+        val categoriesRef = db.collection("users").document(userId).collection("categories")
+
+        val categoryData = hashMapOf(
+            "name" to categoryName,
+            "imageUri" to (imageUri?.toString() ?: "")  // Save image URI as a string
+        )
+
+        categoriesRef.add(categoryData)
+            .addOnSuccessListener {
+                Toast.makeText(this, "Category added successfully to Firestore!", Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Error adding category: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
     }
 
     private fun checkAndRequestPermission() {
@@ -157,35 +205,36 @@ class SavedRecipiesPage : AppCompatActivity() {
     }
 
     private fun addNewItemCard(newName: String, imageUri: Uri?) {
-        // Inflate a new item_card layout
         val inflater = LayoutInflater.from(this)
         val newItemCard = inflater.inflate(R.layout.item_card, cardContainer, false)
 
-        // Find the TextView and ImageView within the inflated item_card layout
         val itemTitle = newItemCard.findViewById<TextView>(R.id.item_title)
         val itemImage = newItemCard.findViewById<ImageView>(R.id.item_image)
 
-        // Set the category name
         itemTitle.text = newName
 
         if (imageUri != null) {
-            // Display the selected image if available
-            itemImage.setImageURI(imageUri)
-            // clear the selected image URI
+            try {
+                // Use ContentResolver to get an InputStream
+                val inputStream = contentResolver.openInputStream(imageUri)
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+                itemImage.setImageBitmap(bitmap)
+                inputStream?.close()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show()
+            }
             selectedImageUri = null
         } else {
-            // Use InitialsDrawable to display the first letter in a circular background
             val initialLetter = newName.firstOrNull()?.uppercaseChar().toString()
             val initialsDrawable = InitialsDrawable(this, initialLetter)
-            initialsDrawable.color = Color.DKGRAY  // Background color
+            initialsDrawable.color = Color.DKGRAY
             itemImage.setImageDrawable(initialsDrawable)
         }
 
-        // Add the new item card before the "New Category" card
         val newCategoryCardIndex = cardContainer.indexOfChild(findViewById(R.id.new_category_card))
         cardContainer.addView(newItemCard, newCategoryCardIndex)
     }
-
 
     private fun selectButton(selectedButton: ImageButton) {
         homeButton.isSelected = false
