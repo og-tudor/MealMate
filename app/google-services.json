@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "771497686004",
+    "project_id": "proiecteimog",
+    "storage_bucket": "proiecteimog.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:771497686004:android:8dd0aafa2fa26b814bbfa1",
+        "android_client_info": {
+          "package_name": "com.example.mealmate"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCE0X1Ous7LjPa5JB52VY_ZwaOzN3Qv7ZQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
