@@ -1,0 +1,105 @@
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#1E2220"
+    tools:context=".fragments.LoginFragment">
+
+    <!-- Background Image -->
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitStart"
+        app:srcCompat="@drawable/login"
+        tools:ignore="MissingConstraints" />
+
+    <!-- Email input field -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/email_input_layout"
+        android:layout_width="319dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20dp"
+        android:hint="Email"
+        app:boxBackgroundColor="#E0CFB7"
+        app:layout_constraintBottom_toTopOf="@+id/password_input_layout"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.975">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/email"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/rounded_background"
+            android:fontFamily="@font/lalezar"
+            android:inputType="textEmailAddress"
+            android:padding="10dp"
+            android:textColor="#463F3C" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Password input field -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/password_input_layout"
+        android:layout_width="319dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="80dp"
+        android:hint="Password"
+        android:backgroundTint="#D48D5A"
+        app:layout_constraintBottom_toTopOf="@+id/registerButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/password"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/rounded_background"
+            android:fontFamily="@font/lalezar"
+            android:inputType="textPassword"
+            android:padding="10dp"
+            android:textColor="#463F3C" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Password confirmation   -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/password_confirmation_input_layout"
+        android:layout_width="319dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="80dp"
+        android:hint="Password Confirmation"
+        android:backgroundTint="#D48D5A"
+        app:layout_constraintBottom_toTopOf="@+id/registerButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/password_confirmation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/rounded_background"
+            android:fontFamily="@font/lalezar"
+            android:inputType="textPassword"
+            android:padding="10dp"
+            android:textColor="#463F3C" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Login button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/registerButton"
+        android:layout_width="319dp"
+        android:layout_height="68dp"
+        android:layout_marginBottom="140dp"
+        android:backgroundTint="#D48D5A"
+        android:fontFamily="@font/lalezar"
+        android:text="REGISTER"
+        android:textColor="#463F3C"
+        android:textSize="30sp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
