@@ -13,7 +13,7 @@
     tools:ignore="MissingConstraints">
 
     <TextView
-        android:id="@+id/custom_name_link"
+        android:id="@+id/return_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"

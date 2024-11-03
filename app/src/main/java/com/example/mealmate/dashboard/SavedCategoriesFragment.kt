@@ -264,8 +264,22 @@ class SavedCategoriesFragment : Fragment() {
             itemImage.setImageDrawable(initialsDrawable)
         }
 
+        // Add click listener to navigate to SavedRecipesFragment
+        newItemCard.setOnClickListener {
+            navigateToRecipesFragment()
+        }
+
         val newCategoryCardIndex = cardContainer.indexOfChild(view?.findViewById(R.id.new_category_card))
         cardContainer.addView(newItemCard, newCategoryCardIndex)
+    }
+
+    // Function to navigate to SavedRecipesFragment
+    private fun navigateToRecipesFragment() {
+        val fragment = SavedRecipesFragment()
+        parentFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, fragment)
+            .addToBackStack(null)
+            .commit()
     }
 
     private fun checkAndRequestPermission() {
