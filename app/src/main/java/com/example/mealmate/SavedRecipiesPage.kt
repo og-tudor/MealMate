@@ -40,7 +40,7 @@ class SavedRecipiesPage : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.saved_recipies)
+        setContentView(R.layout.saved_categories)
 
         // Initialize Firebase
         auth = FirebaseAuth.getInstance()

@@ -1,35 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
-    <LinearLayout
-        xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        xmlns:tools="http://schemas.android.com/tools"
-        android:layout_width="match_parent"
-        android:layout_height="85dp"
-        android:orientation="horizontal"
-        android:background="#1E2220"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.0"
-        tools:layout_editor_absoluteX="-4dp"
-        tools:ignore="MissingConstraints" >
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="100dp"
+    android:orientation="vertical"
+    android:background="#1E2220"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp"
+    tools:layout_editor_absoluteX="-4dp"
+    tools:ignore="MissingConstraints">
 
-        <!-- Search Bar on the Left -->
+    <TextView
+        android:id="@+id/custom_name_link"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginBottom="8dp"
+        android:text="&lt; Return"
+        android:textColor="#FF5722"
+        android:textSize="16sp"
+        android:visibility="invisible"
+        />
+<!--        -->
+
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingTop="5dp"
+        >
+
         <include
             layout="@layout/search_bar"
             android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_marginBottom="20dp"
-            android:layout_marginEnd="30dp"
-            android:layout_marginStart="30dp"
-            android:layout_marginTop="25dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="16dp"
+            android:layout_marginStart="16dp"
             android:layout_weight="1" />
 
-        <!-- ImageView on the Right -->
         <ImageView
+            android:paddingBottom="10dp"
             android:layout_width="50dp"
             android:layout_height="50dp"
             android:layout_gravity="center_vertical"
-            android:layout_marginEnd="10dp"
-            android:layout_marginBottom="1dp"
+            android:layout_marginEnd="20dp"
             android:src="@drawable/logo_small" />
     </LinearLayout>
+</LinearLayout>
