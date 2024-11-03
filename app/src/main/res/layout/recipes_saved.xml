@@ -14,7 +14,7 @@
         android:id="@+id/search_header"
         layout="@layout/search_header"
         android:layout_width="0dp"
-        android:layout_height="85dp"
+        android:layout_height="100dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -28,25 +28,43 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- ScrollView containing the GridLayout -->
     <ScrollView
-
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintTop_toBottomOf="@id/search_header"
         app:layout_constraintBottom_toTopOf="@id/navigation_footer"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintEnd_toEndOf="parent"
+        android:fillViewport="true">
+
+        <!-- GridLayout for organizing items in a grid with 3 columns -->
         <LinearLayout
-            android:id="@+id/card_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="8dp">
-            <include
-                android:id="@+id/new_category_card"
-                layout="@layout/item_card_new_category" />
+            android:gravity="center_horizontal"
+            android:paddingTop="16dp"> <!-- Add some padding at the top if needed -->
 
+            <GridLayout
+                android:id="@+id/card_container"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:columnCount="3"
+                android:orientation="horizontal"
+                android:layout_gravity="top|center_horizontal">
+
+                <!-- Recipe Cards -->
+                <include
+                    android:id="@+id/new_recipe_card"
+                    layout="@layout/recipe_new_card" />
+                <include layout="@layout/recipe_default_card" />
+                <include layout="@layout/recipe_default_card" />
+                <include layout="@layout/recipe_default_card" />
+                <include layout="@layout/recipe_default_card" />
+                <include layout="@layout/recipe_default_card" />
+
+            </GridLayout>
         </LinearLayout>
     </ScrollView>
-
 </androidx.constraintlayout.widget.ConstraintLayout>

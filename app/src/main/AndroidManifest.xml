@@ -23,7 +23,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".SavedRecipiesPage"
+            android:name=".dashboard.DashboardActivity"
             android:exported="true">
         </activity>
 

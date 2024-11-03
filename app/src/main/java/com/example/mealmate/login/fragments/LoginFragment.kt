@@ -10,6 +10,7 @@ import android.widget.Button
 import android.widget.EditText
 import com.google.android.material.snackbar.Snackbar
 import androidx.fragment.app.Fragment
+import com.example.mealmate.dashboard.DashboardActivity
 import com.google.firebase.auth.FirebaseAuth
 
 class LoginFragment : Fragment() {
@@ -45,7 +46,7 @@ class LoginFragment : Fragment() {
                 .addOnCompleteListener(requireActivity()) { task ->
                     if (task.isSuccessful) {
                         Log.d("LoginFragment", "signInWithEmail:success")
-                        val intent = Intent(requireContext(), SavedRecipiesPage::class.java)
+                        val intent = Intent(requireContext(), DashboardActivity::class.java)
                         startActivity(intent)
                         requireActivity().finish()
                     } else {

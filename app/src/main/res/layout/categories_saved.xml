@@ -44,7 +44,7 @@
             android:padding="8dp">
             <include
                 android:id="@+id/new_category_card"
-                layout="@layout/item_card_new_category" />
+                layout="@layout/categories_new_card" />
 
         </LinearLayout>
     </ScrollView>

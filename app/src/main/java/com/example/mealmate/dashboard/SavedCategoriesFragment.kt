@@ -1,4 +1,4 @@
-package com.example.mealmate
+package com.example.mealmate.dashboard
 
 import InitialsDrawable
 import android.Manifest
@@ -13,19 +13,22 @@ import android.os.Bundle
 import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
+import androidx.fragment.app.Fragment
+import com.example.mealmate.R
+import com.example.mealmate.SavedRecipesFragment
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import java.io.File
 import java.io.FileOutputStream
 
-class SavedRecipiesPage : AppCompatActivity() {
+class SavedCategoriesFragment : Fragment() {
 
     // Firebase instances
     private lateinit var auth: FirebaseAuth
@@ -38,19 +41,21 @@ class SavedRecipiesPage : AppCompatActivity() {
     private lateinit var coverPhotoImage: ImageView
     private var selectedImageUri: Uri? = null
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.saved_categories)
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        val view = inflater.inflate(R.layout.categories_saved, container, false)
 
         // Initialize Firebase
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
 
         // Initialize buttons and containers
-        homeButton = findViewById(R.id.home_button)
-        discoverButton = findViewById(R.id.discover_button)
-        settingsButton = findViewById(R.id.settings_button)
-        cardContainer = findViewById(R.id.card_container)
+        homeButton = view.findViewById(R.id.home_button)
+        discoverButton = view.findViewById(R.id.discover_button)
+        settingsButton = view.findViewById(R.id.settings_button)
+        cardContainer = view.findViewById(R.id.card_container)
         homeButton.isSelected = true
 
         // Set up click listeners for each button
@@ -59,25 +64,27 @@ class SavedRecipiesPage : AppCompatActivity() {
         settingsButton.setOnClickListener { selectButton(settingsButton) }
 
         // Apply window insets to padding for edge-to-edge display
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+        ViewCompat.setOnApplyWindowInsetsListener(view.findViewById(R.id.main)) { v, insets ->
+            val systemBars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
 
         // Find the "New Category" card
-        val newCategoryCard = findViewById<View>(R.id.new_category_card)
+        val newCategoryCard = view.findViewById<View>(R.id.new_category_card)
         newCategoryCard.setOnClickListener { showAddCategoryDialog() }
 
         // Load categories from Firestore
         loadCategoriesFromFirestore()
+
+        return view
     }
 
     // Function to load categories from Firestore in alphabetical order
     private fun loadCategoriesFromFirestore() {
         val currentUser = auth.currentUser
         if (currentUser == null) {
-            Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "User not authenticated", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -97,19 +104,18 @@ class SavedRecipiesPage : AppCompatActivity() {
                 }
             }
             .addOnFailureListener { e ->
-                Toast.makeText(this, "Error fetching categories: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Error fetching categories: ${e.message}", Toast.LENGTH_SHORT).show()
             }
     }
-
 
     private val imagePickerLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == RESULT_OK && result.data != null) {
+        if (result.resultCode == AppCompatActivity.RESULT_OK && result.data != null) {
             selectedImageUri = result.data?.data
             if (selectedImageUri != null) {
                 coverPhotoImage.setImageURI(selectedImageUri)
-                findViewById<TextView>(R.id.upload_text)?.visibility = View.GONE
+                view?.findViewById<TextView>(R.id.upload_text)?.visibility = View.GONE
                 coverPhotoImage.layoutParams.width = LinearLayout.LayoutParams.MATCH_PARENT
                 coverPhotoImage.layoutParams.height = LinearLayout.LayoutParams.MATCH_PARENT
                 coverPhotoImage.scaleType = ImageView.ScaleType.CENTER_CROP
@@ -118,8 +124,32 @@ class SavedRecipiesPage : AppCompatActivity() {
         }
     }
 
+    // Function to select a button and handle navigation
+    private fun selectButton(selectedButton: ImageButton) {
+        homeButton.isSelected = false
+        discoverButton.isSelected = false
+        settingsButton.isSelected = false
+
+        selectedButton.isSelected = true
+
+        // Handle navigation based on selected button
+        when (selectedButton) {
+            homeButton -> navigateToFragment(SavedCategoriesFragment())
+            discoverButton -> navigateToFragment(SavedCategoriesFragment()) // Replace with DiscoverFragment
+            settingsButton -> navigateToFragment(SavedCategoriesFragment()) // Replace with SettingsFragment
+        }
+    }
+
+    // Function to navigate to a fragment
+    private fun navigateToFragment(fragment: Fragment) {
+        parentFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, fragment)
+            .addToBackStack(null)
+            .commit()
+    }
+
     private fun showAddCategoryDialog() {
-        val dialog = Dialog(this)
+        val dialog = Dialog(requireContext())
         dialog.setContentView(R.layout.dialog_add_category)
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
@@ -145,15 +175,14 @@ class SavedRecipiesPage : AppCompatActivity() {
                     if (filePath != null) {
                         saveCategoryToFirestore(newCategoryName, filePath)
                     } else {
-                        Toast.makeText(this, "Failed to save image locally", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), "Failed to save image locally", Toast.LENGTH_SHORT).show()
                     }
                 } else {
                     saveCategoryToFirestore(newCategoryName, null)
                 }
                 dialog.dismiss()
-                // Refresh the categories without restarting the activity
+                // Refresh the categories
                 refreshCategories()
-
             }
         }
 
@@ -162,24 +191,20 @@ class SavedRecipiesPage : AppCompatActivity() {
     }
 
     private fun refreshCategories() {
-        // Iterate over the views in cardContainer and remove all views except the "New Category" card
+        // Remove all views except the "New Category" card
         for (i in cardContainer.childCount - 1 downTo 0) {
             val childView = cardContainer.getChildAt(i)
             if (childView.findViewById<TextView>(R.id.item_title)?.text != "New Category") {
                 cardContainer.removeViewAt(i)
             }
         }
-
-        // Reload categories from Firestore
         loadCategoriesFromFirestore()
     }
 
-
-    // Function to copy the image to local storage
     private fun copyImageToLocalStorage(uri: Uri): String? {
         return try {
-            val inputStream = contentResolver.openInputStream(uri) ?: return null
-            val file = File(filesDir, "${System.currentTimeMillis()}.jpg")
+            val inputStream = requireContext().contentResolver.openInputStream(uri) ?: return null
+            val file = File(requireContext().filesDir, "${System.currentTimeMillis()}.jpg")
             val outputStream = FileOutputStream(file)
             inputStream.copyTo(outputStream)
             inputStream.close()
@@ -194,7 +219,7 @@ class SavedRecipiesPage : AppCompatActivity() {
     private fun saveCategoryToFirestore(categoryName: String, filePath: String?) {
         val currentUser = auth.currentUser
         if (currentUser == null) {
-            Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "User not authenticated", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -208,16 +233,16 @@ class SavedRecipiesPage : AppCompatActivity() {
 
         categoriesRef.add(categoryData)
             .addOnSuccessListener {
-                Toast.makeText(this, "Category added successfully to Firestore!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Category added successfully to Firestore!", Toast.LENGTH_SHORT).show()
             }
             .addOnFailureListener { e ->
-                Toast.makeText(this, "Error adding category: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Error adding category: ${e.message}", Toast.LENGTH_SHORT).show()
             }
     }
 
     private fun addNewItemCard(newName: String, imageUri: Uri?) {
-        val inflater = LayoutInflater.from(this)
-        val newItemCard = inflater.inflate(R.layout.item_card, cardContainer, false)
+        val inflater = LayoutInflater.from(requireContext())
+        val newItemCard = inflater.inflate(R.layout.categories_default_card, cardContainer, false)
 
         val itemTitle = newItemCard.findViewById<TextView>(R.id.item_title)
         val itemImage = newItemCard.findViewById<ImageView>(R.id.item_image)
@@ -230,26 +255,26 @@ class SavedRecipiesPage : AppCompatActivity() {
                 itemImage.setImageBitmap(bitmap)
             } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Failed to load image", Toast.LENGTH_SHORT).show()
             }
         } else {
             val initialLetter = newName.firstOrNull()?.uppercaseChar().toString()
-            val initialsDrawable = InitialsDrawable(this, initialLetter)
+            val initialsDrawable = InitialsDrawable(requireContext(), initialLetter)
             initialsDrawable.color = Color.DKGRAY
             itemImage.setImageDrawable(initialsDrawable)
         }
 
-        val newCategoryCardIndex = cardContainer.indexOfChild(findViewById(R.id.new_category_card))
+        val newCategoryCardIndex = cardContainer.indexOfChild(view?.findViewById(R.id.new_category_card))
         cardContainer.addView(newItemCard, newCategoryCardIndex)
     }
 
     private fun checkAndRequestPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES)
+            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.READ_MEDIA_IMAGES)
                 != PackageManager.PERMISSION_GRANTED
             ) {
                 ActivityCompat.requestPermissions(
-                    this,
+                    requireActivity(),
                     arrayOf(Manifest.permission.READ_MEDIA_IMAGES),
                     REQUEST_PERMISSION_READ_STORAGE
                 )
@@ -257,11 +282,11 @@ class SavedRecipiesPage : AppCompatActivity() {
                 openGallery()
             }
         } else {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.READ_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED
             ) {
                 ActivityCompat.requestPermissions(
-                    this,
+                    requireActivity(),
                     arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
                     REQUEST_PERMISSION_READ_STORAGE
                 )
@@ -274,23 +299,6 @@ class SavedRecipiesPage : AppCompatActivity() {
     private fun openGallery() {
         val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
         imagePickerLauncher.launch(intent)
-    }
-
-
-
-
-    private fun selectButton(selectedButton: ImageButton) {
-        homeButton.isSelected = false
-        discoverButton.isSelected = false
-        settingsButton.isSelected = false
-
-        selectedButton.isSelected = true
-
-        when (selectedButton) {
-            homeButton -> startActivity(Intent(this, SavedRecipiesPage::class.java))
-            discoverButton -> startActivity(Intent(this, SavedRecipiesPage::class.java))
-            settingsButton -> startActivity(Intent(this, SavedRecipiesPage::class.java))
-        }
     }
 
     companion object {
