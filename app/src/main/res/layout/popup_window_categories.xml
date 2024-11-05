@@ -1,0 +1,23 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="150dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/dropdown_rounded_background"
+    android:padding="8dp">
+
+    <!-- Include the Edit Button -->
+    <include
+        layout="@layout/dropdown_menu_button"
+        android:id="@+id/edit_button" />
+
+    <!-- Separator Line -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#808080" />
+
+    <!-- Include the Delete Button -->
+    <include
+        layout="@layout/dropdown_menu_button"
+        android:id="@+id/delete_button" />
+</LinearLayout>

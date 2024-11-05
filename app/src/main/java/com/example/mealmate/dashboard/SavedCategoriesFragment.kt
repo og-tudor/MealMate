@@ -1,5 +1,7 @@
 package com.example.mealmate.dashboard
 
+import CategoriesViewModel
+import Category
 import InitialsDrawable
 import android.Manifest
 import android.app.Dialog
@@ -21,12 +23,14 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
 import com.example.mealmate.R
 import com.example.mealmate.SavedRecipesFragment
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import java.io.File
 import java.io.FileOutputStream
+
 
 class SavedCategoriesFragment : Fragment() {
 
@@ -41,6 +45,13 @@ class SavedCategoriesFragment : Fragment() {
     private lateinit var coverPhotoImage: ImageView
     private var selectedImageUri: Uri? = null
 
+    private var categoriesLoaded = false
+    private val cachedCategories = mutableListOf<Category>()
+
+
+    // Use ViewModel to retain data
+    private lateinit var categoriesViewModel: CategoriesViewModel
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -51,12 +62,34 @@ class SavedCategoriesFragment : Fragment() {
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
 
-        // Initialize buttons and containers
+        // Initialize UI elements
         homeButton = view.findViewById(R.id.home_button)
         discoverButton = view.findViewById(R.id.discover_button)
         settingsButton = view.findViewById(R.id.settings_button)
         cardContainer = view.findViewById(R.id.card_container)
         homeButton.isSelected = true
+
+        // Initialize ViewModel using ViewModelProvider
+        categoriesViewModel = ViewModelProvider(requireActivity()).get(CategoriesViewModel::class.java)
+
+        // Clear existing views in cardContainer to avoid duplicates
+        cardContainer.removeAllViews()
+
+        // Check if layout is already initialized
+        if (categoriesViewModel.layoutInitialized) {
+            // Use cached data
+            categoriesViewModel.cachedCategories.forEach { category ->
+                // Add each category to the UI
+                addNewItemCard(category.name, category.imageUri, category.id)
+            }
+            addNewCategoryCard()
+        } else {
+            // Load categories from Firestore and cache them
+            loadCategoriesFromFirestore()
+            categoriesViewModel.layoutInitialized = true
+        }
+
+        // Add the "Add New Category" card at the end
 
         // Set up click listeners for each button
         homeButton.setOnClickListener { selectButton(homeButton) }
@@ -70,15 +103,25 @@ class SavedCategoriesFragment : Fragment() {
             insets
         }
 
-        // Find the "New Category" card
-        val newCategoryCard = view.findViewById<View>(R.id.new_category_card)
-        newCategoryCard.setOnClickListener { showAddCategoryDialog() }
-
-        // Load categories from Firestore
-        loadCategoriesFromFirestore()
-
         return view
     }
+
+    // Method to add the "Add New Category" card at the end of cardContainer
+    private fun addNewCategoryCard() {
+        val inflater = LayoutInflater.from(requireContext())
+        val newCategoryCard = inflater.inflate(R.layout.categories_new_card, cardContainer, false)
+
+        // Set the click listener for the "Add New Category" card
+        newCategoryCard.setOnClickListener {
+            showAddCategoryDialog()
+        }
+
+        // Add the "Add New Category" card to the cardContainer
+        cardContainer.addView(newCategoryCard)
+    }
+
+
+
 
     // Function to load categories from Firestore in alphabetical order
     private fun loadCategoriesFromFirestore() {
@@ -91,7 +134,6 @@ class SavedCategoriesFragment : Fragment() {
         val userId = currentUser.uid
         val categoriesRef = db.collection("users").document(userId).collection("categories")
 
-        // Use orderBy to sort the documents by the "name" field in alphabetical order
         categoriesRef.orderBy("name").get()
             .addOnSuccessListener { documents ->
                 for (document in documents) {
@@ -99,14 +141,30 @@ class SavedCategoriesFragment : Fragment() {
                     val filePath = document.getString("imageUri") ?: ""
                     val imageUri = if (filePath.isNotEmpty()) Uri.fromFile(File(filePath)) else null
                     val categoryId = document.id
+
+                    // Cache the category data in ViewModel
+                    val category = Category(categoryName, imageUri, categoryId)
+                    // Only add to cache if not already present
+                    if (!categoriesViewModel.cachedCategories.contains(category)) {
+                        categoriesViewModel.cachedCategories.add(category)
+                    }
+
                     // Add the category to the UI
                     addNewItemCard(categoryName, imageUri, categoryId)
                 }
+
+                // Add the "Add New Category" card at the end, after all categories have been added
+                addNewCategoryCard()
             }
             .addOnFailureListener { e ->
                 Toast.makeText(requireContext(), "Error fetching categories: ${e.message}", Toast.LENGTH_SHORT).show()
+
+                // Still add the "Add New Category" card even if there's an error fetching categories
+                addNewCategoryCard()
             }
     }
+
+
 
     private val imagePickerLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -191,13 +249,7 @@ class SavedCategoriesFragment : Fragment() {
     }
 
     private fun refreshCategories() {
-        // Remove all views except the "New Category" card
-        for (i in cardContainer.childCount - 1 downTo 0) {
-            val childView = cardContainer.getChildAt(i)
-            if (childView.findViewById<TextView>(R.id.item_title)?.text != "New Category") {
-                cardContainer.removeViewAt(i)
-            }
-        }
+        cardContainer.removeAllViews()
         loadCategoriesFromFirestore()
     }
 
@@ -269,9 +321,82 @@ class SavedCategoriesFragment : Fragment() {
             navigateToRecipesFragment(categoryId)
         }
 
+        newItemCard.setOnLongClickListener {
+            // Inflate the popup view
+            val inflater = LayoutInflater.from(requireContext())
+            val popupView = inflater.inflate(R.layout.popup_window_categories, null)
+
+            // Create a PopupWindow
+            val popupWindow = PopupWindow(
+                popupView,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                true
+            )
+
+            // Set up the Edit Button
+            val editButton = popupView.findViewById<LinearLayout>(R.id.edit_button)
+            val editTextView = editButton.findViewById<TextView>(R.id.menu_option_text)
+            val editIconView = editButton.findViewById<ImageView>(R.id.menu_option_icon)
+            editTextView.text = "Edit"
+            editTextView.setTextColor(Color.GRAY)
+            editIconView.setImageResource(R.drawable.icon_edit) // Set your edit icon
+
+            // Set up the Delete Button
+            val deleteButton = popupView.findViewById<LinearLayout>(R.id.delete_button)
+            val deleteTextView = deleteButton.findViewById<TextView>(R.id.menu_option_text)
+            val deleteIconView = deleteButton.findViewById<ImageView>(R.id.menu_option_icon)
+            deleteTextView.text = "Delete"
+            deleteIconView.setImageResource(R.drawable.icon_delete) // Set your delete icon
+
+            // Set up the click listener for the "Delete" option
+            deleteButton.setOnClickListener {
+                deleteCategory(categoryId)
+                popupWindow.dismiss() // Close the popup
+            }
+
+            // You can add a click listener for the "Edit" button as well
+            editButton.setOnClickListener {
+                // Handle the edit action
+                // For example, show a dialog to edit the category
+                popupWindow.dismiss() // Close the popup
+            }
+
+            // Show the PopupWindow
+            popupWindow.showAsDropDown(newItemCard)
+            true
+        }
+
+
+
+
         val newCategoryCardIndex = cardContainer.indexOfChild(view?.findViewById(R.id.new_category_card))
         cardContainer.addView(newItemCard, newCategoryCardIndex)
     }
+
+    private fun deleteCategory(categoryId: String) {
+        val currentUser = auth.currentUser
+        if (currentUser == null) {
+            Toast.makeText(requireContext(), "User not authenticated", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val userId = currentUser.uid
+        val categoryRef = db.collection("users").document(userId).collection("categories").document(categoryId)
+
+        // Delete the category from Firestore
+        categoryRef.delete()
+            .addOnSuccessListener {
+                Toast.makeText(requireContext(), "Category deleted successfully", Toast.LENGTH_SHORT).show()
+                // Remove the category from the UI and ViewModel cache
+                categoriesViewModel.cachedCategories.removeAll { it.id == categoryId }
+                refreshCategories() // Refresh the categories in the UI
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(requireContext(), "Error deleting category: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
 
     // Function to navigate to SavedRecipesFragment and pass categoryId
     private fun navigateToRecipesFragment(categoryId: String) {
