@@ -358,7 +358,7 @@ class SavedCategoriesFragment : Fragment() {
             // You can add a click listener for the "Edit" button as well
             editButton.setOnClickListener {
                 // Handle the edit action
-                // For example, show a dialog to edit the category
+                showEditCategoryDialog(categoryId, newName, imageUri)
                 popupWindow.dismiss() // Close the popup
             }
 
@@ -367,12 +367,58 @@ class SavedCategoriesFragment : Fragment() {
             true
         }
 
-
-
-
         val newCategoryCardIndex = cardContainer.indexOfChild(view?.findViewById(R.id.new_category_card))
         cardContainer.addView(newItemCard, newCategoryCardIndex)
     }
+
+    private fun showEditCategoryDialog(categoryId: String, existingCategoryName: String, existingImageUri: Uri?) {
+        // Create a dialog using the existing layout
+        val dialog = Dialog(requireContext())
+        dialog.setContentView(R.layout.modal_add_card)
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        // Set dialog size
+        val dialogWidth = (resources.displayMetrics.widthPixels * 0.85).toInt()
+        val dialogHeight = (resources.displayMetrics.heightPixels * 0.6).toInt()
+        dialog.window?.setLayout(dialogWidth, dialogHeight)
+
+        // Access UI components
+        val modalTitle = dialog.findViewById<TextView>(R.id.modal_name)
+        val nameEditText = dialog.findViewById<EditText>(R.id.new_modal_name)
+        val coverPhotoSection = dialog.findViewById<LinearLayout>(R.id.cover_photo_section)
+        val coverPhotoImage = dialog.findViewById<ImageView>(R.id.cover_photo_image)
+        val uploadText = dialog.findViewById<TextView>(R.id.upload_text)
+        val saveButton = dialog.findViewById<Button>(R.id.save_button)
+        val cancelButton = dialog.findViewById<Button>(R.id.cancel_button)
+
+        // Customize the title and button text
+        modalTitle.text = "Edit Category" // Change the title text
+        saveButton.text = "Update" // Change the button text
+
+        // Set the existing category name and image if available
+        nameEditText.setText(existingCategoryName)
+        if (existingImageUri != null) {
+            coverPhotoImage.setImageURI(existingImageUri)
+            uploadText.visibility = View.GONE
+        }
+
+        // Set up the click listeners
+        coverPhotoSection.setOnClickListener { checkAndRequestPermission() }
+
+        saveButton.setOnClickListener {
+            val updatedCategoryName = nameEditText.text.toString().trim()
+            if (updatedCategoryName.isNotEmpty()) {
+                // Handle updating the category in Firestore or your database
+                updateCategoryInFirestore(categoryId, updatedCategoryName)
+                dialog.dismiss()
+            }
+        }
+
+        cancelButton.setOnClickListener { dialog.dismiss() }
+
+        dialog.show()
+    }
+
 
     private fun deleteCategory(categoryId: String) {
         val currentUser = auth.currentUser
@@ -412,6 +458,38 @@ class SavedCategoriesFragment : Fragment() {
             .addToBackStack(null)
             .commit()
     }
+
+    private fun updateCategoryInFirestore(categoryId: String, updatedCategoryName: String) {
+        val currentUser = auth.currentUser
+        if (currentUser == null) {
+            Toast.makeText(requireContext(), "User not authenticated", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val userId = currentUser.uid
+        val categoryRef = db.collection("users").document(userId).collection("categories").document(categoryId)
+
+        // Create a map to update the fields
+        val updates = hashMapOf<String, Any>(
+            "name" to updatedCategoryName
+        )
+
+        // Update the category in Firestore
+        categoryRef.update(updates)
+            .addOnSuccessListener {
+                Toast.makeText(requireContext(), "Category updated successfully", Toast.LENGTH_SHORT).show()
+                // Update the cached category in ViewModel
+                val category = categoriesViewModel.cachedCategories.find { it.id == categoryId }
+                category?.name = updatedCategoryName
+
+                // Refresh the categories to reflect the changes
+                refreshCategories()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(requireContext(), "Error updating category: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
 
 
     private fun checkAndRequestPermission() {
