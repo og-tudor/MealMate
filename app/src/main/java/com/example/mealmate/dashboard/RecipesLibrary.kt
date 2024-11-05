@@ -26,6 +26,7 @@ import androidx.fragment.app.Fragment
 import com.example.mealmate.dashboard.SavedCategoriesFragment
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.yourpackage.name.RecipeFragment
 
 class SavedRecipesFragment : Fragment() {
 
@@ -38,7 +39,7 @@ class SavedRecipesFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         // Inflate the layout for this fragment
-        val view = inflater.inflate(R.layout.recipes_saved, container, false)
+        val view = inflater.inflate(R.layout.recipes_library, container, false)
         val categoryId = arguments?.getString("categoryId")
         // Find the "Return" button, make it visible, and set up the click listener
         val returnButton: TextView = view.findViewById(R.id.return_button)
@@ -101,7 +102,7 @@ class SavedRecipesFragment : Fragment() {
 
     // function to create a new recipe card
     private fun createRecipeCard(recipeName: String, imageUri: String) {
-        val recipeCard = layoutInflater.inflate(R.layout.recipe_default_card, null)
+        val recipeCard = layoutInflater.inflate(R.layout.recipes_library_default_card, null)
         val recipeNameTextView = recipeCard.findViewById<TextView>(R.id.item_title)
         val recipeImage = recipeCard.findViewById<ImageView>(R.id.item_image)
 
@@ -112,7 +113,13 @@ class SavedRecipesFragment : Fragment() {
 
         // Set an OnClickListener to handle the card click
         recipeCard.setOnClickListener {
-            // Handle the click event
+            // Create an instance of RecipeFragment with the data
+            val fragment = RecipeFragment.newInstance(recipeName, imageUri)
+            // Replace the current fragment with RecipeFragment
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .addToBackStack(null)
+                .commit()
         }
 
         // Add the card to the layout
