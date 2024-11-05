@@ -98,9 +98,9 @@ class SavedCategoriesFragment : Fragment() {
                     val categoryName = document.getString("name") ?: ""
                     val filePath = document.getString("imageUri") ?: ""
                     val imageUri = if (filePath.isNotEmpty()) Uri.fromFile(File(filePath)) else null
-
+                    val categoryId = document.id
                     // Add the category to the UI
-                    addNewItemCard(categoryName, imageUri)
+                    addNewItemCard(categoryName, imageUri, categoryId)
                 }
             }
             .addOnFailureListener { e ->
@@ -150,7 +150,7 @@ class SavedCategoriesFragment : Fragment() {
 
     private fun showAddCategoryDialog() {
         val dialog = Dialog(requireContext())
-        dialog.setContentView(R.layout.dialog_add_category)
+        dialog.setContentView(R.layout.modal_add_card)
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
         // Set dialog size
@@ -165,7 +165,7 @@ class SavedCategoriesFragment : Fragment() {
 
         val saveButton = dialog.findViewById<Button>(R.id.save_button)
         val cancelButton = dialog.findViewById<Button>(R.id.cancel_button)
-        val editTextName = dialog.findViewById<EditText>(R.id.new_category_name)
+        val editTextName = dialog.findViewById<EditText>(R.id.new_modal_name)
 
         saveButton.setOnClickListener {
             val newCategoryName = editTextName.text.toString().trim()
@@ -240,7 +240,7 @@ class SavedCategoriesFragment : Fragment() {
             }
     }
 
-    private fun addNewItemCard(newName: String, imageUri: Uri?) {
+    private fun addNewItemCard(newName: String, imageUri: Uri?, categoryId: String) {
         val inflater = LayoutInflater.from(requireContext())
         val newItemCard = inflater.inflate(R.layout.categories_default_card, cardContainer, false)
 
@@ -264,23 +264,30 @@ class SavedCategoriesFragment : Fragment() {
             itemImage.setImageDrawable(initialsDrawable)
         }
 
-        // Add click listener to navigate to SavedRecipesFragment
+        // Add click listener to navigate to SavedRecipesFragment with categoryId
         newItemCard.setOnClickListener {
-            navigateToRecipesFragment()
+            navigateToRecipesFragment(categoryId)
         }
 
         val newCategoryCardIndex = cardContainer.indexOfChild(view?.findViewById(R.id.new_category_card))
         cardContainer.addView(newItemCard, newCategoryCardIndex)
     }
 
-    // Function to navigate to SavedRecipesFragment
-    private fun navigateToRecipesFragment() {
+    // Function to navigate to SavedRecipesFragment and pass categoryId
+    private fun navigateToRecipesFragment(categoryId: String) {
         val fragment = SavedRecipesFragment()
+
+        // Use a Bundle to pass the categoryId
+        val bundle = Bundle()
+        bundle.putString("categoryId", categoryId)
+        fragment.arguments = bundle
+
         parentFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, fragment)
             .addToBackStack(null)
             .commit()
     }
+
 
     private fun checkAndRequestPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -318,4 +325,5 @@ class SavedCategoriesFragment : Fragment() {
     companion object {
         private const val REQUEST_PERMISSION_READ_STORAGE = 101
     }
+
 }

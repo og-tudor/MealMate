@@ -11,6 +11,7 @@
 
     <!-- Category Name Section -->
     <TextView
+        android:id="@+id/modal_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Category Name"
@@ -23,7 +24,7 @@
 
 <!--    rounded corners-->
     <EditText
-        android:id="@+id/new_category_name"
+        android:id="@+id/new_modal_name"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="#454E49"
