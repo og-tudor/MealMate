@@ -5,8 +5,10 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -17,8 +19,8 @@ import com.example.mealmate.R
 import com.example.mealmate.model.Recipe
 import com.example.mealmate.network.RetrofitInstance
 import kotlinx.coroutines.launch
-import android.widget.LinearLayout
 import com.example.mealmate.dashboard.GeneralFunctions
+import retrofit2.HttpException
 
 class ExploreFragment : Fragment() {
     private var MAXIMUM_CARDS = 20
@@ -27,6 +29,9 @@ class ExploreFragment : Fragment() {
     private lateinit var homeButton: ImageButton
     private lateinit var discoverButton: ImageButton
     private lateinit var settingsButton: ImageButton
+    private lateinit var searchBarContainer: LinearLayout
+    private lateinit var searchInput: EditText
+    private lateinit var searchIcon: ImageView
     private var cardsLoaded = 0
 
     override fun onCreateView(
@@ -42,14 +47,24 @@ class ExploreFragment : Fragment() {
         settingsButton = view.findViewById(R.id.settings_button)
         cardContainer = view.findViewById(R.id.card_container)
         lottieAnimationView = view.findViewById(R.id.lottie_animation_view)
+        searchBarContainer = view.findViewById(R.id.search_bar_container)
+        searchInput = view.findViewById(R.id.search_input)
+        searchIcon = view.findViewById(R.id.search_icon_button)
         discoverButton.isSelected = true
 
+        // Set up search bar with click listener for the search icon
         val generalFunctions = GeneralFunctions(requireActivity(), homeButton, discoverButton, settingsButton)
-        homeButton.setOnClickListener { generalFunctions.selectButton(homeButton) }
-        discoverButton.setOnClickListener { generalFunctions.selectButton(discoverButton) }
-        settingsButton.setOnClickListener { generalFunctions.selectButton(settingsButton) }
+        generalFunctions.setupSearchBar(searchBarContainer, searchInput, searchIcon) { query ->
+            makeSearchApiCall(query)
+        }
 
-        // Show the Lottie animation and make API calls
+        // Set up button listeners using GeneralFunctions
+        val buttonFunctions = GeneralFunctions(requireActivity(), homeButton, discoverButton, settingsButton)
+        homeButton.setOnClickListener { buttonFunctions.selectButton(homeButton) }
+        discoverButton.setOnClickListener { buttonFunctions.selectButton(discoverButton) }
+        settingsButton.setOnClickListener { buttonFunctions.selectButton(settingsButton) }
+
+        // Show the Lottie animation and make initial API calls
         lottieAnimationView.visibility = View.VISIBLE
         lottieAnimationView.playAnimation()
 
@@ -59,6 +74,48 @@ class ExploreFragment : Fragment() {
 
         return view
     }
+
+    private fun makeSearchApiCall(query: String) {
+        // Capitalize the first letter of the search query
+        val formattedQuery = query.trim().replaceFirstChar {
+            if (it.isLowerCase()) it.titlecase() else it.toString()
+        }
+
+        lottieAnimationView.visibility = View.VISIBLE
+        lottieAnimationView.playAnimation()
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val response = RetrofitInstance.api.searchMeals(formattedQuery)
+                response.meals?.let { meals ->
+                    cardContainer.removeAllViews() // Clear existing cards before showing new results
+                    for (meal in meals) {
+                        val recipe = Recipe(
+                            id = meal.idMeal,
+                            title = meal.strMeal,
+                            imageUrl = meal.strMealThumb
+                        )
+                        addCardToContainer(recipe)
+                    }
+                } ?: run {
+                    Toast.makeText(requireContext(), "No results found for \"$formattedQuery\"", Toast.LENGTH_SHORT).show()
+                }
+                lottieAnimationView.visibility = View.GONE
+                lottieAnimationView.cancelAnimation()
+            } catch (e: HttpException) {
+                Log.e("ExploreFragment", "API call failed: ${e.message}")
+                Toast.makeText(requireContext(), "Error fetching search results", Toast.LENGTH_SHORT).show()
+                lottieAnimationView.visibility = View.GONE
+                lottieAnimationView.cancelAnimation()
+            } catch (e: Exception) {
+                Log.e("ExploreFragment", "Error: ${e.message}")
+                Toast.makeText(requireContext(), "An unexpected error occurred", Toast.LENGTH_SHORT).show()
+                lottieAnimationView.visibility = View.GONE
+                lottieAnimationView.cancelAnimation()
+            }
+        }
+    }
+
 
     private fun fetchRandomMeal() {
         viewLifecycleOwner.lifecycleScope.launch {

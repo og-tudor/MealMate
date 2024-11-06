@@ -11,8 +11,10 @@
     tools:ignore="ExtraText">
 
     <ImageView
-        android:layout_width="24dp"
-        android:layout_height="24dp"
+        android:id="@+id/search_icon_button"
+        android:layout_marginLeft="5dp"
+        android:layout_width="27dp"
+        android:layout_height="27dp"
         android:src="@drawable/icon_search"
         android:layout_marginEnd="8dp"
         app:tint="#2A302D" />

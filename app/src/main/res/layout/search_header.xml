@@ -4,7 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="100dp"
+    android:layout_height="110dp"
     android:orientation="vertical"
     android:background="#1E2220"
     android:paddingTop="10dp"
@@ -23,10 +23,9 @@
         android:textSize="16sp"
         android:visibility="invisible"
         />
-<!--        -->
-
 
     <LinearLayout
+        android:id="@+id/search_bar_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
@@ -42,9 +41,9 @@
             android:layout_weight="1" />
 
         <ImageView
-            android:paddingBottom="10dp"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
+            android:paddingBottom="12dp"
+            android:layout_width="55dp"
+            android:layout_height="55dp"
             android:layout_gravity="center_vertical"
             android:layout_marginEnd="20dp"
             android:src="@drawable/logo_small" />
