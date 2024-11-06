@@ -5,12 +5,16 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.GridLayout
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import com.example.mealmate.R
+import com.example.mealmate.SavedRecipesFragment
+import com.example.mealmate.dashboard.SavedCategoriesFragment
 
 class RecipeFragment : Fragment() {
+    private lateinit var cardContainer: GridLayout
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -39,6 +43,20 @@ class RecipeFragment : Fragment() {
                 // Optionally, set a placeholder image if imageUri is empty or null
                 recipeImageView.setImageResource(R.drawable.placeholder)
             }
+        }
+        val returnButton: TextView = view.findViewById(R.id.return_button)
+        cardContainer = view.findViewById(R.id.card_container)
+        returnButton.visibility = View.VISIBLE
+        returnButton.text = "< Recipies"
+
+        // Set an OnClickListener to handle the button click and navigate back
+        returnButton.setOnClickListener {
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, SavedRecipesFragment())
+                .addToBackStack(null)
+                .commit()
+
+            returnButton.visibility = View.INVISIBLE
         }
 
         return view
