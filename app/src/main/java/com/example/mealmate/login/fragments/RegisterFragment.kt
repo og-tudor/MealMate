@@ -27,18 +27,24 @@ class RegisterFragment : Fragment() {
         // References to UI elements
         val emailField = view.findViewById<EditText>(R.id.email)
         val passwordField = view.findViewById<EditText>(R.id.password)
+        val passwordConfirmationField = view.findViewById<EditText>(R.id.password_confirmation)
         val registerButton = view.findViewById<MaterialButton>(R.id.registerButton)
 
         // Set up the register button
         registerButton.setOnClickListener {
             val email = emailField.text.toString()
             val password = passwordField.text.toString()
+            val passwordConfirmation = passwordConfirmationField.text.toString()
 
             if (email.isEmpty() || password.isEmpty()) {
                 Snackbar.make(view, "Please enter both email and password", Snackbar.LENGTH_LONG).show()
                 return@setOnClickListener
             }
 
+            if (password != passwordConfirmation) {
+                Snackbar.make(view, "Passwords do not match", Snackbar.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
             // Register the user with Firebase Authentication
             auth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(requireActivity()) { task ->
