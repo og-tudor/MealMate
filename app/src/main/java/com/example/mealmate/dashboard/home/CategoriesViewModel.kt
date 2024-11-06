@@ -1,3 +1,5 @@
+package com.example.mealmate.dashboard.home
+
 import androidx.lifecycle.ViewModel
 import android.net.Uri
 

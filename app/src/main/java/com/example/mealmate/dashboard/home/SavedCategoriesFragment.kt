@@ -1,7 +1,5 @@
-package com.example.mealmate.dashboard
+package com.example.mealmate.dashboard.home
 
-import CategoriesViewModel
-import Category
 import InitialsDrawable
 import android.Manifest
 import android.app.Dialog
@@ -26,6 +24,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.example.mealmate.R
 import com.example.mealmate.SavedRecipesFragment
+import com.example.mealmate.dashboard.GeneralFunctions
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import java.io.File
@@ -57,7 +56,6 @@ class SavedCategoriesFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.categories_saved, container, false)
-
         // Initialize Firebase
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
@@ -89,12 +87,11 @@ class SavedCategoriesFragment : Fragment() {
             categoriesViewModel.layoutInitialized = true
         }
 
-        // Add the "Add New Category" card at the end
-
+        val generalFunctions = GeneralFunctions(requireActivity(), homeButton, discoverButton, settingsButton)
         // Set up click listeners for each button
-        homeButton.setOnClickListener { selectButton(homeButton) }
-        discoverButton.setOnClickListener { selectButton(discoverButton) }
-        settingsButton.setOnClickListener { selectButton(settingsButton) }
+        homeButton.setOnClickListener { generalFunctions.selectButton(homeButton) }
+        discoverButton.setOnClickListener { generalFunctions.selectButton(discoverButton) }
+        settingsButton.setOnClickListener { generalFunctions.selectButton(settingsButton) }
 
         // Apply window insets to padding for edge-to-edge display
         ViewCompat.setOnApplyWindowInsetsListener(view.findViewById(R.id.main)) { v, insets ->
@@ -182,21 +179,21 @@ class SavedCategoriesFragment : Fragment() {
         }
     }
 
-    // Function to select a button and handle navigation
-    private fun selectButton(selectedButton: ImageButton) {
-        homeButton.isSelected = false
-        discoverButton.isSelected = false
-        settingsButton.isSelected = false
-
-        selectedButton.isSelected = true
-
-        // Handle navigation based on selected button
-        when (selectedButton) {
-            homeButton -> navigateToFragment(SavedCategoriesFragment())
-            discoverButton -> navigateToFragment(SavedCategoriesFragment()) // Replace with DiscoverFragment
-            settingsButton -> navigateToFragment(SavedCategoriesFragment()) // Replace with SettingsFragment
-        }
-    }
+//    // Function to select a button and handle navigation
+//    private fun selectButton(selectedButton: ImageButton) {
+//        homeButton.isSelected = false
+//        discoverButton.isSelected = false
+//        settingsButton.isSelected = false
+//
+//        selectedButton.isSelected = true
+//
+//        // Handle navigation based on selected button
+//        when (selectedButton) {
+//            homeButton -> navigateToFragment(SavedCategoriesFragment())
+//            discoverButton -> navigateToFragment(SavedCategoriesFragment()) // Replace with DiscoverFragment
+//            settingsButton -> navigateToFragment(SavedCategoriesFragment()) // Replace with SettingsFragment
+//        }
+//    }
 
     // Function to navigate to a fragment
     private fun navigateToFragment(fragment: Fragment) {
