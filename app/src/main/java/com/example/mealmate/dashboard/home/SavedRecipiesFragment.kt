@@ -14,6 +14,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.GridLayout
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -23,6 +24,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import com.example.mealmate.dashboard.GeneralFunctions
 import com.example.mealmate.dashboard.home.SavedCategoriesFragment
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -34,6 +36,11 @@ class SavedRecipesFragment : Fragment() {
     private var selectedImageUri: Uri? = null
     private val db = FirebaseFirestore.getInstance()
     private lateinit var cardContainer: GridLayout
+    private lateinit var generalFunctions: GeneralFunctions
+    private lateinit var homeButton: ImageButton
+    private lateinit var discoverButton: ImageButton
+    private lateinit var settingsButton: ImageButton
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -41,20 +48,31 @@ class SavedRecipesFragment : Fragment() {
         // Inflate the layout for this fragment
         val view = inflater.inflate(R.layout.recipes_library, container, false)
         val categoryId = arguments?.getString("categoryId")
+
+        // Initialize UI elements
+        homeButton = view.findViewById(R.id.home_button)
+        discoverButton = view.findViewById(R.id.discover_button)
+        settingsButton = view.findViewById(R.id.settings_button)
+        cardContainer = view.findViewById(R.id.card_container)
+        homeButton.isSelected = true
+
+
+        generalFunctions = GeneralFunctions(requireActivity(), homeButton, discoverButton, settingsButton)
+        // Set up click listeners for each button
+        homeButton.setOnClickListener { generalFunctions.selectButton(homeButton) }
+        discoverButton.setOnClickListener { generalFunctions.selectButton(discoverButton) }
+        settingsButton.setOnClickListener { generalFunctions.selectButton(settingsButton) }
+
+
         // Find the "Return" button, make it visible, and set up the click listener
         val returnButton: TextView = view.findViewById(R.id.return_button)
         cardContainer = view.findViewById(R.id.card_container)
         returnButton.visibility = View.VISIBLE
         returnButton.text = "< Categories"
 
-        // Set an OnClickListener to handle the button click and navigate back
+        // Use GeneralFunctions to handle the navigation
         returnButton.setOnClickListener {
-            parentFragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, SavedCategoriesFragment())
-                .addToBackStack(null)
-                .commit()
-
-            returnButton.visibility = View.INVISIBLE
+            generalFunctions.navigateToFragment(SavedCategoriesFragment(), hideView = returnButton)
         }
 
         val newRecipeCard = view.findViewById<View>(R.id.new_recipe_card)
@@ -90,9 +108,8 @@ class SavedRecipesFragment : Fragment() {
                 for (document in documents) {
                     val recipeName = document.getString("name") ?: ""
                     val imageUri = document.getString("imageUri") ?: ""
-                    // make recipe cards for each recipe
+                    // Create recipe cards for each recipe
                     createRecipeCard(recipeName, imageUri)
-
                 }
             }
             .addOnFailureListener { e ->
@@ -100,7 +117,7 @@ class SavedRecipesFragment : Fragment() {
             }
     }
 
-    // function to create a new recipe card
+    // Function to create a new recipe card
     private fun createRecipeCard(recipeName: String, imageUri: String) {
         val recipeCard = layoutInflater.inflate(R.layout.recipes_library_default_card, null)
         val recipeNameTextView = recipeCard.findViewById<TextView>(R.id.item_title)
@@ -113,19 +130,13 @@ class SavedRecipesFragment : Fragment() {
 
         // Set an OnClickListener to handle the card click
         recipeCard.setOnClickListener {
-            // Create an instance of RecipeFragment with the data
             val fragment = RecipeFragment.newInstance(recipeName, imageUri)
-            // Replace the current fragment with RecipeFragment
-            parentFragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, fragment)
-                .addToBackStack(null)
-                .commit()
+            // Use GeneralFunctions to handle the navigation
+            generalFunctions.navigateToFragment(fragment)
         }
 
         // Add the card to the layout
         cardContainer.addView(recipeCard)
-
-
     }
 
     private fun showAddRecipeDialog() {
@@ -174,13 +185,12 @@ class SavedRecipesFragment : Fragment() {
         }
 
         val userId = currentUser.uid
-        val categoryId = arguments?.getString("categoryId") // Retrieve the passed categoryId
+        val categoryId = arguments?.getString("categoryId")
         if (categoryId == null) {
             Toast.makeText(requireContext(), "Category ID is missing", Toast.LENGTH_SHORT).show()
             return
         }
 
-        // Reference to the specific category's recipes collection
         val recipesRef = db.collection("users").document(userId)
             .collection("categories").document(categoryId)
             .collection("recipes")
@@ -188,8 +198,8 @@ class SavedRecipesFragment : Fragment() {
         val recipeData = hashMapOf(
             "name" to recipeName,
             "imageUri" to (imageUri?.toString() ?: ""),
-            "ingredients" to listOf<String>(), // Initialize with an empty list of ingredients
-            "instructions" to "" // Initialize with an empty string for instructions
+            "ingredients" to listOf<String>(),
+            "instructions" to ""
         )
 
         recipesRef.add(recipeData)
@@ -200,7 +210,6 @@ class SavedRecipesFragment : Fragment() {
                 Toast.makeText(requireContext(), "Error adding recipe: ${e.message}", Toast.LENGTH_SHORT).show()
             }
     }
-
 
     private fun checkAndRequestPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

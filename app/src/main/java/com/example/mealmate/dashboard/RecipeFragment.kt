@@ -6,14 +6,21 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.GridLayout
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import com.example.mealmate.R
 import com.example.mealmate.SavedRecipesFragment
+import com.example.mealmate.dashboard.GeneralFunctions
 
 class RecipeFragment : Fragment() {
     private lateinit var cardContainer: GridLayout
+    private lateinit var homeButton: ImageButton
+    private lateinit var discoverButton: ImageButton
+    private lateinit var settingsButton: ImageButton
+    private lateinit var generalFunctions: GeneralFunctions
+
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -21,6 +28,20 @@ class RecipeFragment : Fragment() {
     ): View? {
         // Inflate the correct layout for this fragment
         val view = inflater.inflate(R.layout.recipe_page, container, false)
+
+        // Initialize UI elements
+        homeButton = view.findViewById(R.id.home_button)
+        discoverButton = view.findViewById(R.id.discover_button)
+        settingsButton = view.findViewById(R.id.settings_button)
+        cardContainer = view.findViewById(R.id.card_container)
+        homeButton.isSelected = true
+
+        generalFunctions = GeneralFunctions(requireActivity(), homeButton, discoverButton, settingsButton)
+        // Set up click listeners for each button
+        homeButton.setOnClickListener { generalFunctions.selectButton(homeButton) }
+        discoverButton.setOnClickListener { generalFunctions.selectButton(discoverButton) }
+        settingsButton.setOnClickListener { generalFunctions.selectButton(settingsButton) }
+
 
         // Retrieve the arguments
         val recipeName = arguments?.getString("recipeName")
@@ -48,15 +69,12 @@ class RecipeFragment : Fragment() {
         returnButton.visibility = View.VISIBLE
         returnButton.text = "< Recipies"
 
-        // Set an OnClickListener to handle the button click and navigate back
-        returnButton.setOnClickListener {
-            parentFragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, SavedRecipesFragment())
-                .addToBackStack(null)
-                .commit()
+        val generalFunctions = GeneralFunctions(requireActivity(), homeButton, discoverButton, settingsButton)
 
-            returnButton.visibility = View.INVISIBLE
+        returnButton.setOnClickListener {
+            generalFunctions.navigateToFragment(SavedRecipesFragment(), hideView = returnButton)
         }
+
 
         return view
     }

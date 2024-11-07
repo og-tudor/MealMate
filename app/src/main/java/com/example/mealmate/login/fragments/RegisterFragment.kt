@@ -8,12 +8,14 @@ import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import com.example.mealmate.dashboard.GeneralFunctions
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 
 class RegisterFragment : Fragment() {
     private lateinit var auth: FirebaseAuth
+    private lateinit var generalFunctions: GeneralFunctions
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -23,6 +25,9 @@ class RegisterFragment : Fragment() {
 
         // Initialize Firebase Auth
         auth = FirebaseAuth.getInstance()
+
+        // Initialize GeneralFunctions
+        generalFunctions = GeneralFunctions(requireActivity())
 
         // References to UI elements
         val emailField = view.findViewById<EditText>(R.id.email)
@@ -45,20 +50,22 @@ class RegisterFragment : Fragment() {
                 Snackbar.make(view, "Passwords do not match", Snackbar.LENGTH_LONG).show()
                 return@setOnClickListener
             }
+
             // Register the user with Firebase Authentication
             auth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(requireActivity()) { task ->
                     if (task.isSuccessful) {
                         Log.d("RegisterFragment", "createUserWithEmail:success")
-                        Snackbar.make(view, "Registration successful!", Toast.LENGTH_LONG).show()
+                        Snackbar.make(view, "Registration successful!", Snackbar.LENGTH_LONG).show()
 
-                        // Navigate back to LoginFragment
-                        parentFragmentManager.popBackStack()
+                        // Navigate back to LoginFragment using GeneralFunctions
+                        generalFunctions.navigateToFragment(LoginFragment())
                     } else {
                         Log.w("RegisterFragment", "createUserWithEmail:failure", task.exception)
-                        Snackbar.make(view,
+                        Snackbar.make(
+                            view,
                             "Registration failed: ${task.exception?.message}",
-                            Toast.LENGTH_LONG
+                            Snackbar.LENGTH_LONG
                         ).show()
                     }
                 }

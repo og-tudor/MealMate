@@ -11,10 +11,12 @@ import android.widget.EditText
 import com.google.android.material.snackbar.Snackbar
 import androidx.fragment.app.Fragment
 import com.example.mealmate.dashboard.DashboardActivity
+import com.example.mealmate.dashboard.GeneralFunctions
 import com.google.firebase.auth.FirebaseAuth
 
 class LoginFragment : Fragment() {
     private lateinit var auth: FirebaseAuth
+    private lateinit var generalFunctions: GeneralFunctions
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -24,6 +26,9 @@ class LoginFragment : Fragment() {
 
         // Initialize Firebase Auth
         auth = FirebaseAuth.getInstance()
+
+        // Initialize GeneralFunctions
+        generalFunctions = GeneralFunctions(requireActivity())
 
         // References to UI elements
         val emailField = view.findViewById<EditText>(R.id.email)
@@ -60,12 +65,9 @@ class LoginFragment : Fragment() {
                 }
         }
 
-        // Navigate to RegisterFragment
+        // Navigate to RegisterFragment using GeneralFunctions
         registerLink.setOnClickListener {
-            parentFragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, RegisterFragment())
-                .addToBackStack(null)
-                .commit()
+            generalFunctions.navigateToFragment(RegisterFragment())
         }
 
         return view

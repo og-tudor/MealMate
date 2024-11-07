@@ -1,8 +1,12 @@
 package com.example.mealmate.dashboard
 
+import android.content.Context
 import android.graphics.Color
+import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -13,21 +17,21 @@ import androidx.fragment.app.FragmentActivity
 import com.example.mealmate.R
 import com.example.mealmate.dashboard.home.ExploreFragment
 import com.example.mealmate.dashboard.home.SavedCategoriesFragment
-import android.content.Context
-import android.view.inputmethod.InputMethodManager
 
 class GeneralFunctions(
     private val activity: FragmentActivity,
-    var homeButton: ImageButton,
-    var discoverButton: ImageButton,
-    var settingsButton: ImageButton
+    var homeButton: ImageButton? = null,
+    var discoverButton: ImageButton? = null,
+    var settingsButton: ImageButton? = null
 ) {
+    //  Another constructor to initialize GeneralFunctions without buttons
+    constructor(activity: FragmentActivity) : this(activity, null, null, null)
     // Function to select a button and handle navigation
     fun selectButton(selectedButton: ImageButton) {
-        // Deselect all buttons
-        homeButton.isSelected = false
-        discoverButton.isSelected = false
-        settingsButton.isSelected = false
+        // Ensure buttons are non-null before use
+        homeButton?.isSelected = false
+        discoverButton?.isSelected = false
+        settingsButton?.isSelected = false
 
         // Select the chosen button
         selectedButton.isSelected = true
@@ -35,20 +39,24 @@ class GeneralFunctions(
         // Handle navigation based on the selected button
         when (selectedButton) {
             homeButton -> navigateToFragment(SavedCategoriesFragment())
-            discoverButton -> navigateToFragment(ExploreFragment()) // Replace with DiscoverFragment
-            settingsButton -> navigateToFragment(SavedCategoriesFragment()) // Replace with SettingsFragment
+            discoverButton -> navigateToFragment(ExploreFragment()) // Replace with DiscoverFragment if needed
+            settingsButton -> navigateToFragment(SavedCategoriesFragment()) // Replace with SettingsFragment if needed
         }
     }
 
-    // Function to navigate to the specified fragment using the activity's FragmentManager
-    private fun navigateToFragment(fragment: Fragment) {
+    // General function to navigate to any fragment with optional arguments and an optional view to hide
+    fun navigateToFragment(fragment: Fragment, args: Bundle? = null, hideView: View? = null) {
+        if (args != null) {
+            fragment.arguments = args
+        }
+
         activity.supportFragmentManager.beginTransaction()
-            .replace(R.id.fragment_container, fragment) // Ensure this ID matches your fragment container in the layout
+            .replace(R.id.fragment_container, fragment)
             .addToBackStack(null)
             .commit()
+
+        hideView?.visibility = View.INVISIBLE
     }
-
-
 
     fun setupSearchBar(searchBarContainer: LinearLayout, searchInput: EditText, searchIcon: ImageView, onSearchClick: (String) -> Unit) {
         searchInput.addTextChangedListener(object : TextWatcher {
@@ -57,7 +65,7 @@ class GeneralFunctions(
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 if (!s.isNullOrEmpty()) {
                     // Change the background color of the search bar and the icon color when text is entered
-                    searchIcon.setColorFilter(Color.parseColor("#D94209")) // Change to white or any color that contrasts
+                    searchIcon.setColorFilter(Color.parseColor("#D94209")) // Change to any contrasting color
                 } else {
                     // Reset to the original background and icon color when the text is cleared
                     searchIcon.setColorFilter(Color.parseColor("#2A302D")) // Original color (or any default color)
@@ -85,6 +93,4 @@ class GeneralFunctions(
             }
         }
     }
-
-
 }

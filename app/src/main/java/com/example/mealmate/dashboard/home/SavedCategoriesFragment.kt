@@ -42,6 +42,7 @@ class SavedCategoriesFragment : Fragment() {
     private lateinit var settingsButton: ImageButton
     private lateinit var cardContainer: LinearLayout
     private lateinit var coverPhotoImage: ImageView
+    private lateinit var generalFunctions: GeneralFunctions
     private var selectedImageUri: Uri? = null
 
     private var categoriesLoaded = false
@@ -87,7 +88,7 @@ class SavedCategoriesFragment : Fragment() {
             categoriesViewModel.layoutInitialized = true
         }
 
-        val generalFunctions = GeneralFunctions(requireActivity(), homeButton, discoverButton, settingsButton)
+        generalFunctions = GeneralFunctions(requireActivity(), homeButton, discoverButton, settingsButton)
         // Set up click listeners for each button
         homeButton.setOnClickListener { generalFunctions.selectButton(homeButton) }
         discoverButton.setOnClickListener { generalFunctions.selectButton(discoverButton) }
@@ -292,7 +293,10 @@ class SavedCategoriesFragment : Fragment() {
 
         // Add click listener to navigate to SavedRecipesFragment with categoryId
         newItemCard.setOnClickListener {
-            navigateToRecipesFragment(categoryId)
+            val bundle = Bundle().apply {
+                putString("categoryId", categoryId)
+            }
+            generalFunctions.navigateToFragment(SavedRecipesFragment(), args = bundle)
         }
 
         newItemCard.setOnLongClickListener {
