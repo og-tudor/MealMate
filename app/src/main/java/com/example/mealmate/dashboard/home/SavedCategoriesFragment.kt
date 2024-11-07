@@ -179,29 +179,6 @@ class SavedCategoriesFragment : Fragment() {
         }
     }
 
-//    // Function to select a button and handle navigation
-//    private fun selectButton(selectedButton: ImageButton) {
-//        homeButton.isSelected = false
-//        discoverButton.isSelected = false
-//        settingsButton.isSelected = false
-//
-//        selectedButton.isSelected = true
-//
-//        // Handle navigation based on selected button
-//        when (selectedButton) {
-//            homeButton -> navigateToFragment(SavedCategoriesFragment())
-//            discoverButton -> navigateToFragment(SavedCategoriesFragment()) // Replace with DiscoverFragment
-//            settingsButton -> navigateToFragment(SavedCategoriesFragment()) // Replace with SettingsFragment
-//        }
-//    }
-
-    // Function to navigate to a fragment
-    private fun navigateToFragment(fragment: Fragment) {
-        parentFragmentManager.beginTransaction()
-            .replace(R.id.fragment_container, fragment)
-            .addToBackStack(null)
-            .commit()
-    }
 
     private fun showAddCategoryDialog() {
         val dialog = Dialog(requireContext())

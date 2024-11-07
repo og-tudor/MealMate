@@ -40,13 +40,14 @@ class GeneralFunctions(
         }
     }
 
-    // Function to navigate to the specified fragment
+    // Function to navigate to the specified fragment using the activity's FragmentManager
     private fun navigateToFragment(fragment: Fragment) {
         activity.supportFragmentManager.beginTransaction()
-            .replace(android.R.id.content, fragment)
+            .replace(R.id.fragment_container, fragment) // Ensure this ID matches your fragment container in the layout
             .addToBackStack(null)
             .commit()
     }
+
 
 
     fun setupSearchBar(searchBarContainer: LinearLayout, searchInput: EditText, searchIcon: ImageView, onSearchClick: (String) -> Unit) {
