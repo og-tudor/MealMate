@@ -21,12 +21,15 @@ import com.example.mealmate.network.RetrofitInstance
 import kotlinx.coroutines.launch
 import com.example.mealmate.dashboard.GeneralFunctions
 import com.example.mealmate.model.Meal
+import com.example.mealmate.utils.FragmentSource
 import com.yourpackage.name.Ingredient
 import com.yourpackage.name.RecipeFragment
 import retrofit2.HttpException
 
 class ExploreFragment : Fragment() {
-    private var MAXIMUM_CARDS = 20
+    // number of recipies to fetch for the random
+    private var MAXIMUM_CARDS = 4
+
     private var CUP_TO_GRAMS = 250
     // round up value
     private var TSP_TO_GRAMS = 6
@@ -42,6 +45,7 @@ class ExploreFragment : Fragment() {
     private lateinit var searchBarContainer: LinearLayout
     private lateinit var searchInput: EditText
     private lateinit var searchIcon: ImageView
+    private lateinit var generalFunctions: GeneralFunctions
     private var cardsLoaded = 0
 
     override fun onCreateView(
@@ -63,7 +67,7 @@ class ExploreFragment : Fragment() {
         discoverButton.isSelected = true
 
         // Set up search bar with click listener for the search icon
-        val generalFunctions = GeneralFunctions(requireActivity(), homeButton, discoverButton, settingsButton)
+        generalFunctions = GeneralFunctions(requireActivity(), homeButton, discoverButton, settingsButton)
         generalFunctions.setupSearchBar(searchBarContainer, searchInput, searchIcon) { query ->
             makeSearchApiCall(query)
         }
@@ -230,14 +234,12 @@ class ExploreFragment : Fragment() {
                 recipeName = recipe.title.ifEmpty { "No Title" },
                 imageUri = recipe.imageUrl.ifEmpty { "" },
                 ingredients = ingredientsArray,
-                instructions = recipe.instructions.ifEmpty { "No instructions available" }
+                instructions = recipe.instructions.ifEmpty { "No instructions available" },
+                source = FragmentSource.EXPLORE_PAGE
             )
 
-            // Navigate to the RecipeFragment
-            requireActivity().supportFragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, fragment)
-                .addToBackStack(null)
-                .commit()
+            // Use GeneralFunctions to handle the navigation
+            generalFunctions.navigateToFragment(fragment)
         }
 
 

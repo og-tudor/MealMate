@@ -10,11 +10,14 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.bumptech.glide.Glide
 import com.example.mealmate.R
 import com.example.mealmate.SavedRecipesFragment
 import com.example.mealmate.dashboard.GeneralFunctions
+import com.example.mealmate.dashboard.home.ExploreFragment
+import com.example.mealmate.utils.FragmentSource
 import java.io.Serializable
 
 // Create a data class for ingredients with serialization support
@@ -44,6 +47,40 @@ class RecipeFragment : Fragment() {
         homeButton.setOnClickListener { generalFunctions.selectButton(homeButton) }
         discoverButton.setOnClickListener { generalFunctions.selectButton(discoverButton) }
         settingsButton.setOnClickListener { generalFunctions.selectButton(settingsButton) }
+        val sourceString = arguments?.getString("SOURCE")
+        val source = sourceString?.let { FragmentSource.valueOf(it) } ?: FragmentSource.UNKNOWN_PAGE // Default if not found
+
+        // Set up the return button
+        val returnButton: TextView = view.findViewById(R.id.return_button)
+        returnButton.visibility = View.VISIBLE
+
+        var ReturnFragment: Fragment? = null
+
+        when (source) {
+            FragmentSource.EXPLORE_PAGE -> {
+                discoverButton.isSelected = true
+                returnButton.text = "< Discover"
+                ReturnFragment = ExploreFragment()
+            }
+            FragmentSource.SAVED_RECIPIES_LIBRARY -> {
+                homeButton.isSelected = true
+                returnButton.text = "< Recipies"
+                ReturnFragment = SavedRecipesFragment()
+            }
+
+            else -> {
+                // Toast error
+                returnButton.visibility = View.INVISIBLE
+            }
+        }
+
+        returnButton.setOnClickListener {
+            ReturnFragment?.let {
+                // Only navigate if 'ReturnFragment' is not null
+                generalFunctions.navigateToFragment(it, hideView = returnButton)
+            }
+        }
+
 
         // Retrieve the arguments
         val recipeName = arguments?.getString("recipeName")
@@ -109,14 +146,6 @@ class RecipeFragment : Fragment() {
             instructionsSection.addView(noInstructionsTextView)
         }
 
-        // Set up the return button
-        val returnButton: TextView = view.findViewById(R.id.return_button)
-        returnButton.visibility = View.VISIBLE
-        returnButton.text = "< Recipes"
-        returnButton.setOnClickListener {
-            generalFunctions.navigateToFragment(SavedRecipesFragment(), hideView = returnButton)
-        }
-
         return view
     }
 
@@ -125,7 +154,8 @@ class RecipeFragment : Fragment() {
             recipeName: String,
             imageUri: String,
             ingredients: Array<Ingredient>?,
-            instructions: String?
+            instructions: String?,
+            source: FragmentSource
         ): RecipeFragment {
             val fragment = RecipeFragment()
             val args = Bundle().apply {
@@ -133,6 +163,7 @@ class RecipeFragment : Fragment() {
                 putString("imageUri", imageUri)
                 putSerializable("ingredients", ingredients ?: emptyArray<Ingredient>()) // Use an empty array if ingredients is null
                 putString("instructions", instructions)
+                putString("SOURCE", source.name)
             }
             fragment.arguments = args
             return fragment

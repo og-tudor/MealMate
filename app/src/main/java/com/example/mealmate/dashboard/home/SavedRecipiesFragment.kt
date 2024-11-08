@@ -26,6 +26,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.example.mealmate.dashboard.GeneralFunctions
 import com.example.mealmate.dashboard.home.SavedCategoriesFragment
+import com.example.mealmate.utils.FragmentSource
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.yourpackage.name.Ingredient
@@ -141,7 +142,8 @@ class SavedRecipesFragment : Fragment() {
                 recipeName = recipeName,
                 imageUri = imageUri,
                 ingredients = ingredients,
-                instructions = instructions
+                instructions = instructions,
+                source = FragmentSource.SAVED_RECIPIES_LIBRARY
             )
 
             // Use GeneralFunctions to handle the navigation
