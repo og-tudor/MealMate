@@ -2,4 +2,5 @@
 <resources>
     <item name="savedRecipies" type="id" />
     <item name="fragment_container" type="id" />
+    <item name="categoryName" type="id" />
 </resources>

@@ -16,12 +16,18 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
 import com.bumptech.glide.Glide
 import com.example.mealmate.R
 import com.example.mealmate.SavedRecipesFragment
 import com.example.mealmate.dashboard.GeneralFunctions
+import com.example.mealmate.dashboard.home.CategoriesViewModel
+import com.example.mealmate.dashboard.home.Category
 import com.example.mealmate.dashboard.home.ExploreFragment
 import com.example.mealmate.utils.FragmentSource
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import java.io.File
 import java.io.Serializable
 
 // Create a data class for ingredients with serialization support
@@ -33,6 +39,15 @@ class RecipeFragment : Fragment() {
     private lateinit var discoverButton: ImageButton
     private lateinit var settingsButton: ImageButton
     private lateinit var generalFunctions: GeneralFunctions
+    private lateinit var auth: FirebaseAuth
+    private lateinit var db: FirebaseFirestore
+    private lateinit var categoriesViewModel: CategoriesViewModel
+
+    private lateinit var recipeName: String
+    private var imageUri: Uri? = null
+    private var ingredients: Array<Ingredient> = emptyArray()
+    private lateinit var instructions: String
+
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -40,6 +55,9 @@ class RecipeFragment : Fragment() {
     ): View? {
         // Inflate the correct layout for this fragment
         val view = inflater.inflate(R.layout.recipe_page, container, false)
+        categoriesViewModel = ViewModelProvider(requireActivity()).get(CategoriesViewModel::class.java)
+        auth = FirebaseAuth.getInstance()
+        db = FirebaseFirestore.getInstance()
 
         // Initialize UI elements
         homeButton = view.findViewById(R.id.home_button)
@@ -99,10 +117,10 @@ class RecipeFragment : Fragment() {
 
 
         // Retrieve the arguments
-        val recipeName = arguments?.getString("recipeName")
-        val imageUri = arguments?.getString("imageUri")
-        val ingredients = arguments?.getSerializable("ingredients") as? Array<Ingredient>
-        val instructions = arguments?.getString("instructions")
+        recipeName = arguments?.getString("recipeName") ?: "No Title"
+        imageUri = arguments?.getString("imageUri")?.let { Uri.parse(it) }
+        ingredients = arguments?.getSerializable("ingredients") as? Array<Ingredient> ?: emptyArray()
+        instructions = arguments?.getString("instructions") ?: "No instructions available"
 
         // Find views in the layout
         val recipeNameTextView = view.findViewById<TextView>(R.id.recipe_name)
@@ -114,9 +132,9 @@ class RecipeFragment : Fragment() {
         recipeNameTextView.text = recipeName ?: "No Title"
 
         // Load the image using Glide for better performance and compatibility
-        if (!imageUri.isNullOrEmpty()) {
+        if (!imageUri.toString().isNullOrEmpty()) {
             Glide.with(this)
-                .load(Uri.parse(imageUri))
+                .load(Uri.parse(imageUri.toString()))
                 .placeholder(R.drawable.placeholder)
                 .into(recipeImageView)
         } else {
@@ -170,7 +188,6 @@ class RecipeFragment : Fragment() {
         dialog.setContentView(R.layout.modal_save_recipe)
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
-        // Set the dialog window to match the parent width and adjust gravity to bottom
         dialog.window?.setLayout(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
@@ -179,11 +196,119 @@ class RecipeFragment : Fragment() {
         windowAttributes?.gravity = Gravity.BOTTOM
         dialog.window?.attributes = windowAttributes
 
-        // Initialize the close button
+        val listContainer = dialog.findViewById<LinearLayout>(R.id.listContainer)
         val closeButton = dialog.findViewById<ImageButton>(R.id.closeButton)
         closeButton.setOnClickListener { dialog.dismiss() }
 
+        // Load and display cached categories
+        if (categoriesViewModel.cachedCategories.isEmpty()) {
+            loadCategoriesFromFirestore(dialog) // Pass the dialog to the method
+        } else {
+            displayCategoriesInDialog(listContainer, dialog)
+        }
+
         dialog.show()
+    }
+
+    private fun saveRecipeToFirestore(recipeName: String, imageUri: Uri?, ingredients: Array<Ingredient>, instructions: String, categoryId: String? = null) {
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        if (currentUser == null) {
+            Toast.makeText(requireContext(), "User not authenticated", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val userId = currentUser.uid
+        val categoryId = categoryId
+        if (categoryId == null) {
+            Toast.makeText(requireContext(), "Category ID is missing", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val recipesRef = db.collection("users").document(userId)
+            .collection("categories").document(categoryId)
+            .collection("recipes")
+
+        // Convert ingredients array to a list of strings for storing in Firestore
+        val ingredientsList = ingredients.map { "${it.quantity} ${it.name}" }
+
+        val recipeData = hashMapOf(
+            "name" to recipeName,
+            "imageUri" to (imageUri?.toString() ?: ""),
+            "ingredients" to ingredientsList,
+            "instructions" to instructions
+        )
+
+        recipesRef.add(recipeData)
+            .addOnSuccessListener {
+                Toast.makeText(requireContext(), "Recipe added successfully!", Toast.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(requireContext(), "Error adding recipe: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+
+
+    private fun displayCategoriesInDialog(listContainer: LinearLayout, dialog: Dialog? = null) {
+        listContainer.removeAllViews()
+        for (category in categoriesViewModel.cachedCategories) {
+            val itemView = layoutInflater.inflate(R.layout.category_dialog_item, listContainer, false)
+            val categoryNameTextView = itemView.findViewById<TextView>(R.id.categoryName)
+            val categoryImageView = itemView.findViewById<ImageView>(R.id.categoryIcon)
+
+            categoryNameTextView.text = category.name
+            if (category.imageUri != null) {
+                categoryImageView.setImageURI(category.imageUri)
+            } else {
+                categoryImageView.setImageResource(R.drawable.placeholder)
+            }
+
+            // Set click listener for the category item
+            // Set click listener for the category item
+            itemView.setOnClickListener {
+                saveRecipeToFirestore(
+                    recipeName = recipeName,
+                    imageUri = imageUri,
+                    ingredients = ingredients,
+                    instructions = instructions,
+                    categoryId = category.id
+                )
+                dialog?.dismiss()
+            }
+            // Add the item view to the container
+            listContainer.addView(itemView)
+        }
+    }
+
+
+    // Load categories from Firestore
+    private fun loadCategoriesFromFirestore(dialog: Dialog) {
+        val currentUser = auth.currentUser
+        if (currentUser == null) {
+            Toast.makeText(requireContext(), "User not authenticated", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val userId = currentUser.uid
+        val categoriesRef = db.collection("users").document(userId).collection("categories")
+
+        categoriesRef.orderBy("name").get()
+            .addOnSuccessListener { documents ->
+                categoriesViewModel.cachedCategories.clear()
+                for (document in documents) {
+                    val categoryName = document.getString("name") ?: ""
+                    val filePath = document.getString("imageUri") ?: ""
+                    val imageUri = if (filePath.isNotEmpty()) Uri.fromFile(File(filePath)) else null
+                    val categoryId = document.id
+
+                    val category = Category(categoryName, imageUri, categoryId)
+                    categoriesViewModel.cachedCategories.add(category)
+                }
+                displayCategoriesInDialog(dialog.findViewById(R.id.listContainer))
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(requireContext(), "Error fetching categories: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
     }
 
 
