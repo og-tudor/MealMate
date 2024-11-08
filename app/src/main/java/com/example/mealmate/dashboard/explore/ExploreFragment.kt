@@ -28,7 +28,7 @@ import retrofit2.HttpException
 
 class ExploreFragment : Fragment() {
     // number of recipies to fetch for the random
-    private var MAXIMUM_CARDS = 4
+    private var MAXIMUM_CARDS = 20
 
     private var CUP_TO_GRAMS = 250
     // round up value

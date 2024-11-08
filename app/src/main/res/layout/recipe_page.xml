@@ -184,7 +184,7 @@
 
     <include
         layout="@layout/button_save_recipe"
-        android:id="@+id/saveRecipeButton"
+        android:id="@+id/saveRecipeButtonLayout"
         android:layout_width="150dp"
         android:layout_height="wrap_content"
         app:layout_constraintBottom_toBottomOf="parent"

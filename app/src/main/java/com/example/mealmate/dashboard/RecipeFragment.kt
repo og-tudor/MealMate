@@ -1,10 +1,14 @@
 package com.yourpackage.name
 
+import android.app.Dialog
 import android.net.Uri
 import android.os.Bundle
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
+import android.widget.EditText
 import android.widget.GridLayout
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -49,8 +53,16 @@ class RecipeFragment : Fragment() {
         settingsButton.setOnClickListener { generalFunctions.selectButton(settingsButton) }
         val sourceString = arguments?.getString("SOURCE")
         val source = sourceString?.let { FragmentSource.valueOf(it) } ?: FragmentSource.UNKNOWN_PAGE // Default if not found
-        val saveRecipeButton: View = view.findViewById(R.id.saveRecipeButton)
-        saveRecipeButton.visibility = View.GONE
+
+        // Reference the included layout and find the Button inside it
+        val saveRecipeButtonLayout: View = view.findViewById(R.id.saveRecipeButtonLayout)
+        val saveRecipeButton: Button = saveRecipeButtonLayout.findViewById(R.id.saveRecipeButton)
+
+        // Set the initial visibility of the layout
+        saveRecipeButtonLayout.visibility = View.GONE
+        saveRecipeButton.setOnClickListener {
+            showSaveToCategoryDialog()
+        }
 
         // Set up the return button
         val returnButton: TextView = view.findViewById(R.id.return_button)
@@ -64,7 +76,7 @@ class RecipeFragment : Fragment() {
                 returnButton.text = "< Discover"
                 ReturnFragment = ExploreFragment()
                 // only show button in explore page
-                saveRecipeButton.visibility = View.VISIBLE
+                saveRecipeButtonLayout.visibility = View.VISIBLE
             }
             FragmentSource.SAVED_RECIPIES_LIBRARY -> {
                 homeButton.isSelected = true
@@ -152,6 +164,28 @@ class RecipeFragment : Fragment() {
 
         return view
     }
+
+    private fun showSaveToCategoryDialog() {
+        val dialog = Dialog(requireContext())
+        dialog.setContentView(R.layout.modal_save_recipe)
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        // Set the dialog window to match the parent width and adjust gravity to bottom
+        dialog.window?.setLayout(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        val windowAttributes = dialog.window?.attributes
+        windowAttributes?.gravity = Gravity.BOTTOM
+        dialog.window?.attributes = windowAttributes
+
+        // Initialize the close button
+        val closeButton = dialog.findViewById<ImageButton>(R.id.closeButton)
+        closeButton.setOnClickListener { dialog.dismiss() }
+
+        dialog.show()
+    }
+
 
     companion object {
         fun newInstance(
