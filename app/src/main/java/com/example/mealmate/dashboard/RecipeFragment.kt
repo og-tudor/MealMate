@@ -49,6 +49,8 @@ class RecipeFragment : Fragment() {
         settingsButton.setOnClickListener { generalFunctions.selectButton(settingsButton) }
         val sourceString = arguments?.getString("SOURCE")
         val source = sourceString?.let { FragmentSource.valueOf(it) } ?: FragmentSource.UNKNOWN_PAGE // Default if not found
+        val saveRecipeButton: View = view.findViewById(R.id.saveRecipeButton)
+        saveRecipeButton.visibility = View.GONE
 
         // Set up the return button
         val returnButton: TextView = view.findViewById(R.id.return_button)
@@ -61,6 +63,8 @@ class RecipeFragment : Fragment() {
                 discoverButton.isSelected = true
                 returnButton.text = "< Discover"
                 ReturnFragment = ExploreFragment()
+                // only show button in explore page
+                saveRecipeButton.visibility = View.VISIBLE
             }
             FragmentSource.SAVED_RECIPIES_LIBRARY -> {
                 homeButton.isSelected = true
