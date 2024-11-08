@@ -140,48 +140,48 @@
                     android:textStyle="bold" />
             </FrameLayout>
 
-            <!-- Bullet Points Section (Place it below the FrameLayout) -->
+
+            <!-- Ingredient Section -->
             <LinearLayout
+                xmlns:android="http://schemas.android.com/apk/res/android"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="16dp"
+                android:background="#E0CFB7">
 
-                <!-- Example Bullet Points -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="• penne rigate - 500g"
-                    android:textColor="#000000"
-                    android:textSize="16sp" />
+                <!-- Include the ingredient row multiple times -->
+                <include layout="@layout/ingredient_row" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="• olive oil - 30ml"
-                    android:textColor="#000000"
-                    android:textSize="16sp" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="• garlic - 50g"
-                    android:textColor="#000000"
-                    android:textSize="16sp" />
+                <!-- Add as many <include> tags as needed -->
+            </LinearLayout>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="• chopped tomatoes - 300g"
-                    android:textColor="#000000"
-                    android:textSize="16sp" />
+
+            <!-- Horizontal spacer line-->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#1E2220"
+                android:layout_marginStart="16dp"
+                android:layout_marginEnd="16dp"
+                />
+            <LinearLayout
+                android:id="@+id/instructions_section"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp"
+                >
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="• red chili flakes - to taste"
+                    android:text="1. Boil pasta."
+                    android:fontFamily="@font/lateef"
                     android:textColor="#000000"
                     android:textSize="16sp" />
+                <!-- More TextViews for instructions -->
             </LinearLayout>
         </LinearLayout>
     </ScrollView>
