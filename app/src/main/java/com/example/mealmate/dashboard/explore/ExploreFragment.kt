@@ -20,10 +20,11 @@ import com.example.mealmate.model.Recipe
 import com.example.mealmate.network.RetrofitInstance
 import kotlinx.coroutines.launch
 import com.example.mealmate.dashboard.GeneralFunctions
+import com.example.mealmate.model.Meal
 import retrofit2.HttpException
 
 class ExploreFragment : Fragment() {
-    private var MAXIMUM_CARDS = 20
+    private var MAXIMUM_CARDS = 1
     private lateinit var cardContainer: LinearLayout
     private lateinit var lottieAnimationView: LottieAnimationView
     private lateinit var homeButton: ImageButton
@@ -90,11 +91,33 @@ class ExploreFragment : Fragment() {
                 response.meals?.let { meals ->
                     cardContainer.removeAllViews() // Clear existing cards before showing new results
                     for (meal in meals) {
+                        // Extract ingredients and measures
+                        val ingredients = mutableListOf<String>()
+                        val measures = mutableListOf<String>()
+
+                        for (i in 1..20) {
+                            val ingredientField = meal::class.java.getDeclaredField("strIngredient$i").get(meal) as? String
+                            val measureField = meal::class.java.getDeclaredField("strMeasure$i").get(meal) as? String
+
+                            if (!ingredientField.isNullOrBlank()) {
+                                ingredients.add(ingredientField)
+                            }
+                            if (!measureField.isNullOrBlank()) {
+                                measures.add(measureField)
+                            }
+                        }
+
+                        // Create a combined list of pairs of measures and ingredients
+                        val ingredientsWithQuantities = ingredients.zip(measures)
+
                         val recipe = Recipe(
                             id = meal.idMeal,
                             title = meal.strMeal,
-                            imageUrl = meal.strMealThumb
+                            imageUrl = meal.strMealThumb,
+                            instructions = meal.strInstructions,
+                            ingredientsWithQuantities = ingredientsWithQuantities
                         )
+
                         addCardToContainer(recipe)
                     }
                 } ?: run {
@@ -121,13 +144,16 @@ class ExploreFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val response = RetrofitInstance.api.getRandomMeal()
-                val meal = response.meals.firstOrNull()
-                meal?.let {
+                val mealData = response.meals.firstOrNull()
+                mealData?.let { meal ->
                     val recipe = Recipe(
-                        id = it.idMeal,
-                        title = it.strMeal,
-                        imageUrl = it.strMealThumb
+                        id = meal.idMeal,
+                        title = meal.strMeal,
+                        imageUrl = meal.strMealThumb,
+                        instructions = meal.strInstructions,
+                        ingredientsWithQuantities = meal.getIngredientsWithMeasures()
                     )
+
                     addCardToContainer(recipe)
                 }
                 cardsLoaded++
@@ -146,6 +172,7 @@ class ExploreFragment : Fragment() {
             }
         }
     }
+
 
     private fun addCardToContainer(recipe: Recipe) {
         // Inflate the card layout
