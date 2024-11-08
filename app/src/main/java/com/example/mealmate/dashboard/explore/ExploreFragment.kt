@@ -21,10 +21,19 @@ import com.example.mealmate.network.RetrofitInstance
 import kotlinx.coroutines.launch
 import com.example.mealmate.dashboard.GeneralFunctions
 import com.example.mealmate.model.Meal
+import com.yourpackage.name.Ingredient
+import com.yourpackage.name.RecipeFragment
 import retrofit2.HttpException
 
 class ExploreFragment : Fragment() {
-    private var MAXIMUM_CARDS = 1
+    private var MAXIMUM_CARDS = 20
+    private var CUP_TO_GRAMS = 250
+    // round up value
+    private var TSP_TO_GRAMS = 6
+    // round down value
+    private var TBSP_TO_GRAMS = 14
+    private var OUNCES_TO_GRAMS = 28
+
     private lateinit var cardContainer: LinearLayout
     private lateinit var lottieAnimationView: LottieAnimationView
     private lateinit var homeButton: ImageButton
@@ -76,6 +85,7 @@ class ExploreFragment : Fragment() {
         return view
     }
 
+
     private fun makeSearchApiCall(query: String) {
         // Capitalize the first letter of the search query
         val formattedQuery = query.trim().replaceFirstChar {
@@ -96,18 +106,27 @@ class ExploreFragment : Fragment() {
                         val measures = mutableListOf<String>()
 
                         for (i in 1..20) {
-                            val ingredientField = meal::class.java.getDeclaredField("strIngredient$i").get(meal) as? String
-                            val measureField = meal::class.java.getDeclaredField("strMeasure$i").get(meal) as? String
+                            // Get the ingredient field and set it accessible
+                            val ingredientField = meal::class.java.getDeclaredField("strIngredient$i")
+                            ingredientField.isAccessible = true
+                            val ingredientValue = ingredientField.get(meal) as? String
 
-                            if (!ingredientField.isNullOrBlank()) {
-                                ingredients.add(ingredientField)
+                            // Get the measure field and set it accessible
+                            val measureField = meal::class.java.getDeclaredField("strMeasure$i")
+                            measureField.isAccessible = true
+                            val measureValue = measureField.get(meal) as? String
+
+                            if (!ingredientValue.isNullOrBlank()) {
+                                ingredients.add(ingredientValue)
                             }
-                            if (!measureField.isNullOrBlank()) {
-                                measures.add(measureField)
+                            if (!measureValue.isNullOrBlank()) {
+                                // Use the conversion function
+                                val convertedMeasure = convertMeasureToGrams(measureValue)
+                                measures.add(convertedMeasure)
                             }
                         }
 
-                        // Create a combined list of pairs of measures and ingredients
+                        // Create a combined list of pairs of ingredients and measures
                         val ingredientsWithQuantities = ingredients.zip(measures)
 
                         val recipe = Recipe(
@@ -140,18 +159,24 @@ class ExploreFragment : Fragment() {
     }
 
 
+
     private fun fetchRandomMeal() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val response = RetrofitInstance.api.getRandomMeal()
                 val mealData = response.meals.firstOrNull()
                 mealData?.let { meal ->
+                    // Use the conversion function for each measure in the ingredients list
+                    val convertedIngredientsWithMeasures = meal.getIngredientsWithMeasures().map { (measure, ingredient) ->
+                        convertMeasureToGrams(measure) to ingredient
+                    }
+
                     val recipe = Recipe(
                         id = meal.idMeal,
                         title = meal.strMeal,
                         imageUrl = meal.strMealThumb,
                         instructions = meal.strInstructions,
-                        ingredientsWithQuantities = meal.getIngredientsWithMeasures()
+                        ingredientsWithQuantities = convertedIngredientsWithMeasures
                     )
 
                     addCardToContainer(recipe)
@@ -174,6 +199,7 @@ class ExploreFragment : Fragment() {
     }
 
 
+
     private fun addCardToContainer(recipe: Recipe) {
         // Inflate the card layout
         val cardView = layoutInflater.inflate(R.layout.categories_default_card, cardContainer, false)
@@ -189,7 +215,107 @@ class ExploreFragment : Fragment() {
             .centerCrop()
             .into(imageView)
 
+// Set a click listener to open RecipeFragment with the recipe data
+        cardView.setOnClickListener {
+            // Prepare the ingredients array using the Ingredient data class
+            val ingredientsArray = recipe.ingredientsWithQuantities.map {
+                Ingredient(
+                    name = it.second,  // Ingredient name
+                    quantity = it.first // Measure
+                )
+            }.toTypedArray()
+
+            // Create an instance of RecipeFragment with the recipe data
+            val fragment = RecipeFragment.newInstance(
+                recipeName = recipe.title.ifEmpty { "No Title" },
+                imageUri = recipe.imageUrl.ifEmpty { "" },
+                ingredients = ingredientsArray,
+                instructions = recipe.instructions.ifEmpty { "No instructions available" }
+            )
+
+            // Navigate to the RecipeFragment
+            requireActivity().supportFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, fragment)
+                .addToBackStack(null)
+                .commit()
+        }
+
+
         // Add the card to the LinearLayout
         cardContainer.addView(cardView)
     }
+
+    private fun convertMeasureToGrams(measure: String): String {
+        var convertedMeasure = measure
+        val numericValue = extractNumericValue(measure)
+
+        when {
+            measure.contains("tsp", ignoreCase = true) -> {
+                if (numericValue != null) {
+                    val gramsValue = numericValue * TSP_TO_GRAMS
+                    convertedMeasure = "${"%.2f".format(gramsValue)} grams"
+                } else {
+                    convertedMeasure = measure.replace("tsp", "grams", ignoreCase = true)
+                }
+            }
+            measure.contains("tbsp", ignoreCase = true) || measure.contains("tbs", ignoreCase = true)
+                            || measure.contains("tbls", ignoreCase = true) || measure.contains("tblsp", ignoreCase = true)-> {
+                if (numericValue != null) {
+                    val gramsValue = numericValue * TBSP_TO_GRAMS
+                    convertedMeasure = "${"%.2f".format(gramsValue)} grams"
+                } else {
+                    convertedMeasure = measure.replace("tbsp", "grams", ignoreCase = true)
+                }
+            }
+            measure.contains("oz", ignoreCase = true) || measure.contains("ounce", ignoreCase = true) || measure.contains("ounces", ignoreCase = true) -> {
+                if (numericValue != null) {
+                    val gramsValue = numericValue * OUNCES_TO_GRAMS
+                    convertedMeasure = "${"%.2f".format(gramsValue)} grams"
+                } else {
+                    convertedMeasure = measure.replace("oz", "grams", ignoreCase = true)
+                        .replace("ounce", "grams", ignoreCase = true)
+                        .replace("ounces", "grams", ignoreCase = true)
+                }
+            }
+            measure.contains("cup", ignoreCase = true) || measure.contains("cups", ignoreCase = true) -> {
+                if (numericValue != null) {
+                    val gramsValue = numericValue * CUP_TO_GRAMS
+                    convertedMeasure = "${"%.2f".format(gramsValue)} grams"
+                } else {
+                    convertedMeasure = measure.replace("cup", "grams", ignoreCase = true)
+                        .replace("cups", "grams", ignoreCase = true)
+                }
+            }
+            else -> {
+                // Leave the measure unchanged for other cases
+            }
+        }
+        return convertedMeasure
+    }
+
+    // Helper function to extract numeric value, including fractions (e.g., "1/2")
+    private fun extractNumericValue(measure: String): Double? {
+        return if (measure.contains('/')) {
+            // Handle fractional values
+            measure.split(' ').mapNotNull { part ->
+                if (part.contains('/')) {
+                    val fractionParts = part.split('/')
+                    if (fractionParts.size == 2) {
+                        val numerator = fractionParts[0].toDoubleOrNull()
+                        val denominator = fractionParts[1].toDoubleOrNull()
+                        if (numerator != null && denominator != null) {
+                            numerator / denominator
+                        } else null
+                    } else null
+                } else {
+                    part.toDoubleOrNull()
+                }
+            }.sum()
+        } else {
+            // Handle normal numeric values
+            measure.filter { it.isDigit() || it == '.' }.toDoubleOrNull()
+        }
+    }
+
+
 }

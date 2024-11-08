@@ -28,6 +28,7 @@ import com.example.mealmate.dashboard.GeneralFunctions
 import com.example.mealmate.dashboard.home.SavedCategoriesFragment
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.yourpackage.name.Ingredient
 import com.yourpackage.name.RecipeFragment
 
 class SavedRecipesFragment : Fragment() {
@@ -129,11 +130,24 @@ class SavedRecipesFragment : Fragment() {
         }
 
         // Set an OnClickListener to handle the card click
+        // Set an OnClickListener to handle the card click
         recipeCard.setOnClickListener {
-            val fragment = RecipeFragment.newInstance(recipeName, imageUri)
+            // Populate the data safely with fallback values
+            val ingredients: Array<Ingredient>? = null
+            val instructions: String? = null
+
+            // Create an instance of RecipeFragment with the recipe data
+            val fragment = RecipeFragment.newInstance(
+                recipeName = recipeName,
+                imageUri = imageUri,
+                ingredients = ingredients,
+                instructions = instructions
+            )
+
             // Use GeneralFunctions to handle the navigation
             generalFunctions.navigateToFragment(fragment)
         }
+
 
         // Add the card to the layout
         cardContainer.addView(recipeCard)

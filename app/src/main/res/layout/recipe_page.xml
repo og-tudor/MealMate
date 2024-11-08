@@ -58,7 +58,7 @@
 
                     <!-- Left Section (25% width) -->
                     <LinearLayout
-                        android:layout_width="0dp"
+                        android:layout_width="91dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
                         android:background="#FFAE6436">
@@ -77,7 +77,8 @@
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:scaleType="fitXY"
-                            android:src="@drawable/placeholder" />
+                            android:src="@drawable/placeholder"
+                            />
 
                         <!-- Gradient Overlay -->
                         <View
@@ -150,11 +151,6 @@
                 android:padding="16dp"
                 android:background="#E0CFB7">
 
-                <!-- Include the ingredient row multiple times -->
-                <include layout="@layout/ingredient_row" />
-
-
-                <!-- Add as many <include> tags as needed -->
             </LinearLayout>
 
 
