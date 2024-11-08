@@ -59,7 +59,7 @@
 
                     <!-- Left Section (25% width) -->
                     <LinearLayout
-                        android:layout_width="91dp"
+                        android:layout_width="100dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
                         android:background="#FFAE6436">
