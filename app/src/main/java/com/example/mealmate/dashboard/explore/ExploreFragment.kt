@@ -127,7 +127,7 @@ class ExploreFragment : Fragment() {
                         }
 
                         // Create a combined list of pairs of ingredients and measures
-                        val ingredientsWithQuantities = ingredients.zip(measures)
+                        val ingredientsWithQuantities = measures.zip(ingredients)
 
                         val recipe = Recipe(
                             id = meal.idMeal,
