@@ -126,7 +126,7 @@ class SavedRecipesFragment : Fragment() {
     private fun createRecipeCard(recipeName: String, imageUri: String, ingredients: HashMap<String, String>?, instructions: String) {
         val recipeCard = layoutInflater.inflate(R.layout.recipes_library_default_card, null)
         val recipeNameTextView = recipeCard.findViewById<TextView>(R.id.item_title)
-        val recipeImage = recipeCard.findViewById<ImageView>(R.id.item_image)
+        val recipeImage = recipeCard.findViewById<ImageView>(R.id.recipe_library_item_image)
 
         recipeNameTextView.text = recipeName
         if (imageUri.isNotEmpty()) {

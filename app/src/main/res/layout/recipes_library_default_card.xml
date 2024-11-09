@@ -20,7 +20,7 @@
 
         <!-- Image Section with clipToOutline for rounded corners -->
         <ImageView
-            android:id="@+id/item_image"
+            android:id="@+id/recipe_library_item_image"
             android:layout_width="90dp"
             android:layout_height="70dp"
             android:layout_gravity="center"
