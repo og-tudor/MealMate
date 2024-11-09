@@ -228,8 +228,10 @@ class RecipeFragment : Fragment() {
             .collection("categories").document(categoryId)
             .collection("recipes")
 
-        // Convert ingredients array to a list of strings for storing in Firestore
-        val ingredientsList = ingredients.map { "${it.quantity} ${it.name}" }
+        // hashmap, key = ingredient name, value = ingredient quantity
+        var ingredientsList = ingredients.map { it.name to it.quantity }.toMap()
+
+
 
         val recipeData = hashMapOf(
             "name" to recipeName,

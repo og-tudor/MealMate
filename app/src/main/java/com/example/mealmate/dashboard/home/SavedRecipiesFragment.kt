@@ -110,8 +110,11 @@ class SavedRecipesFragment : Fragment() {
                 for (document in documents) {
                     val recipeName = document.getString("name") ?: ""
                     val imageUri = document.getString("imageUri") ?: ""
+                    // hashmap ingredients, key = name, value = quantity
+                    val ingredients = document.get("ingredients") as HashMap<String, String>
+                    val instructions = document.getString("instructions") ?: ""
                     // Create recipe cards for each recipe
-                    createRecipeCard(recipeName, imageUri)
+                    createRecipeCard(recipeName, imageUri, ingredients, instructions)
                 }
             }
             .addOnFailureListener { e ->
@@ -120,7 +123,7 @@ class SavedRecipesFragment : Fragment() {
     }
 
     // Function to create a new recipe card
-    private fun createRecipeCard(recipeName: String, imageUri: String) {
+    private fun createRecipeCard(recipeName: String, imageUri: String, ingredients: HashMap<String, String>?, instructions: String) {
         val recipeCard = layoutInflater.inflate(R.layout.recipes_library_default_card, null)
         val recipeNameTextView = recipeCard.findViewById<TextView>(R.id.item_title)
         val recipeImage = recipeCard.findViewById<ImageView>(R.id.item_image)
@@ -130,18 +133,24 @@ class SavedRecipesFragment : Fragment() {
             recipeImage.setImageURI(Uri.parse(imageUri))
         }
 
+        // make ingredients list
+        val ingredientsList = mutableListOf<Ingredient>()
+
+        // Iterate over the ingredients map and add each ingredient to the list
+        ingredients?.forEach { (name, quantity) ->
+            ingredientsList.add(Ingredient(name, quantity))
+        }
+
         // Set an OnClickListener to handle the card click
         // Set an OnClickListener to handle the card click
         recipeCard.setOnClickListener {
             // Populate the data safely with fallback values
-            val ingredients: Array<Ingredient>? = null
-            val instructions: String? = null
 
             // Create an instance of RecipeFragment with the recipe data
             val fragment = RecipeFragment.newInstance(
                 recipeName = recipeName,
                 imageUri = imageUri,
-                ingredients = ingredients,
+                ingredients = ingredientsList.toTypedArray(),
                 instructions = instructions,
                 source = FragmentSource.SAVED_RECIPIES_LIBRARY
             )
