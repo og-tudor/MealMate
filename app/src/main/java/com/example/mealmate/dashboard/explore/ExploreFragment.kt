@@ -252,40 +252,36 @@ class ExploreFragment : Fragment() {
         val numericValue = extractNumericValue(measure)
 
         when {
-            measure.contains("tsp", ignoreCase = true) -> {
+            measure.contains(Regex("tsp|teaspoon", RegexOption.IGNORE_CASE)) -> {
                 if (numericValue != null) {
                     val gramsValue = numericValue * TSP_TO_GRAMS
-                    convertedMeasure = "${"%.2f".format(gramsValue)} grams"
+                    convertedMeasure = "${gramsValue.toInt()} grams"
                 } else {
-                    convertedMeasure = measure.replace("tsp", "grams", ignoreCase = true)
+                    convertedMeasure = measure.replace(Regex("tsp|teaspoon", RegexOption.IGNORE_CASE), "grams")
                 }
             }
-            measure.contains("tbsp", ignoreCase = true) || measure.contains("tbs", ignoreCase = true)
-                            || measure.contains("tbls", ignoreCase = true) || measure.contains("tblsp", ignoreCase = true)-> {
+            measure.contains(Regex("tbsp|tbs|tbls|tblsp|tablespoons", RegexOption.IGNORE_CASE)) -> {
                 if (numericValue != null) {
                     val gramsValue = numericValue * TBSP_TO_GRAMS
-                    convertedMeasure = "${"%.2f".format(gramsValue)} grams"
+                    convertedMeasure = "${gramsValue.toInt()} grams"
                 } else {
-                    convertedMeasure = measure.replace("tbsp", "grams", ignoreCase = true)
+                    convertedMeasure = measure.replace(Regex("tbsp|tbs|tbls|tblsp|tablespoons", RegexOption.IGNORE_CASE), "grams")
                 }
             }
-            measure.contains("oz", ignoreCase = true) || measure.contains("ounce", ignoreCase = true) || measure.contains("ounces", ignoreCase = true) -> {
+            measure.contains(Regex("oz|ounce|ounces", RegexOption.IGNORE_CASE)) -> {
                 if (numericValue != null) {
                     val gramsValue = numericValue * OUNCES_TO_GRAMS
-                    convertedMeasure = "${"%.2f".format(gramsValue)} grams"
+                    convertedMeasure = "${gramsValue.toInt()} grams"
                 } else {
-                    convertedMeasure = measure.replace("oz", "grams", ignoreCase = true)
-                        .replace("ounce", "grams", ignoreCase = true)
-                        .replace("ounces", "grams", ignoreCase = true)
+                    convertedMeasure = measure.replace(Regex("oz|ounce|ounces", RegexOption.IGNORE_CASE), "grams")
                 }
             }
-            measure.contains("cup", ignoreCase = true) || measure.contains("cups", ignoreCase = true) -> {
+            measure.contains(Regex("cup|cups", RegexOption.IGNORE_CASE)) -> {
                 if (numericValue != null) {
                     val gramsValue = numericValue * CUP_TO_GRAMS
-                    convertedMeasure = "${"%.2f".format(gramsValue)} grams"
+                    convertedMeasure = "${gramsValue.toInt()} grams"
                 } else {
-                    convertedMeasure = measure.replace("cup", "grams", ignoreCase = true)
-                        .replace("cups", "grams", ignoreCase = true)
+                    convertedMeasure = measure.replace(Regex("cup|cups", RegexOption.IGNORE_CASE), "grams")
                 }
             }
             else -> {
@@ -294,6 +290,8 @@ class ExploreFragment : Fragment() {
         }
         return convertedMeasure
     }
+
+
 
     // Helper function to extract numeric value, including fractions (e.g., "1/2")
     private fun extractNumericValue(measure: String): Double? {
