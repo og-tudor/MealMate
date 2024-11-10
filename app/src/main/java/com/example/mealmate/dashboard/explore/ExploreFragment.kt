@@ -21,24 +21,24 @@ import com.example.mealmate.network.RetrofitInstance
 import kotlinx.coroutines.launch
 import com.example.mealmate.dashboard.GeneralFunctions
 import com.example.mealmate.model.Meal
+import com.example.mealmate.utils.AnimationHandler
 import com.example.mealmate.utils.FragmentSource
 import com.yourpackage.name.Ingredient
 import com.yourpackage.name.RecipeFragment
 import retrofit2.HttpException
 
 class ExploreFragment : Fragment() {
-    // number of recipies to fetch for the random
+    // Number of recipes to fetch for the random
     private var MAXIMUM_CARDS = 20
 
     private var CUP_TO_GRAMS = 250
-    // round up value
-    private var TSP_TO_GRAMS = 6
-    // round down value
-    private var TBSP_TO_GRAMS = 14
+    private var TSP_TO_GRAMS = 6 // Round up value
+    private var TBSP_TO_GRAMS = 14 // Round down value
     private var OUNCES_TO_GRAMS = 28
 
     private lateinit var cardContainer: LinearLayout
     private lateinit var lottieAnimationView: LottieAnimationView
+    private lateinit var animationHandler: AnimationHandler
     private lateinit var homeButton: ImageButton
     private lateinit var discoverButton: ImageButton
     private lateinit var settingsButton: ImageButton
@@ -61,6 +61,7 @@ class ExploreFragment : Fragment() {
         settingsButton = view.findViewById(R.id.settings_button)
         cardContainer = view.findViewById(R.id.card_container)
         lottieAnimationView = view.findViewById(R.id.lottie_animation_view)
+        animationHandler = AnimationHandler(lottieAnimationView)
         searchBarContainer = view.findViewById(R.id.search_bar_container)
         searchInput = view.findViewById(R.id.search_input)
         searchIcon = view.findViewById(R.id.search_icon_button)
@@ -78,10 +79,8 @@ class ExploreFragment : Fragment() {
         discoverButton.setOnClickListener { buttonFunctions.selectButton(discoverButton) }
         settingsButton.setOnClickListener { buttonFunctions.selectButton(settingsButton) }
 
-        // Show the Lottie animation and make initial API calls
-        lottieAnimationView.visibility = View.VISIBLE
-        lottieAnimationView.playAnimation()
-
+        // Show the animation and make initial API calls
+        animationHandler.showAnimation()
         for (i in 0 until MAXIMUM_CARDS) {
             fetchRandomMeal()
         }
@@ -89,15 +88,13 @@ class ExploreFragment : Fragment() {
         return view
     }
 
-
     private fun makeSearchApiCall(query: String) {
         // Capitalize the first letter of the search query
         val formattedQuery = query.trim().replaceFirstChar {
             if (it.isLowerCase()) it.titlecase() else it.toString()
         }
 
-        lottieAnimationView.visibility = View.VISIBLE
-        lottieAnimationView.playAnimation()
+        animationHandler.showAnimation()
 
         viewLifecycleOwner.lifecycleScope.launch {
             try {
@@ -146,23 +143,18 @@ class ExploreFragment : Fragment() {
                 } ?: run {
                     Toast.makeText(requireContext(), "No results found for \"$formattedQuery\"", Toast.LENGTH_SHORT).show()
                 }
-                lottieAnimationView.visibility = View.GONE
-                lottieAnimationView.cancelAnimation()
+                animationHandler.hideAnimation()
             } catch (e: HttpException) {
                 Log.e("ExploreFragment", "API call failed: ${e.message}")
                 Toast.makeText(requireContext(), "Error fetching search results", Toast.LENGTH_SHORT).show()
-                lottieAnimationView.visibility = View.GONE
-                lottieAnimationView.cancelAnimation()
+                animationHandler.hideAnimation()
             } catch (e: Exception) {
                 Log.e("ExploreFragment", "Error: ${e.message}")
                 Toast.makeText(requireContext(), "An unexpected error occurred", Toast.LENGTH_SHORT).show()
-                lottieAnimationView.visibility = View.GONE
-                lottieAnimationView.cancelAnimation()
+                animationHandler.hideAnimation()
             }
         }
     }
-
-
 
     private fun fetchRandomMeal() {
         viewLifecycleOwner.lifecycleScope.launch {
@@ -187,22 +179,18 @@ class ExploreFragment : Fragment() {
                 }
                 cardsLoaded++
                 if (cardsLoaded == MAXIMUM_CARDS) {
-                    lottieAnimationView.visibility = View.GONE
-                    lottieAnimationView.cancelAnimation()
+                    animationHandler.hideAnimation()
                 }
             } catch (e: Exception) {
                 Log.e("ExploreFragment", "API call failed: ${e.message}")
                 Toast.makeText(requireContext(), "Error fetching data", Toast.LENGTH_SHORT).show()
                 cardsLoaded++
                 if (cardsLoaded == MAXIMUM_CARDS) {
-                    lottieAnimationView.visibility = View.GONE
-                    lottieAnimationView.cancelAnimation()
+                    animationHandler.hideAnimation()
                 }
             }
         }
     }
-
-
 
     private fun addCardToContainer(recipe: Recipe) {
         // Inflate the card layout
@@ -219,7 +207,7 @@ class ExploreFragment : Fragment() {
             .centerCrop()
             .into(imageView)
 
-// Set a click listener to open RecipeFragment with the recipe data
+        // Set a click listener to open RecipeFragment with the recipe data
         cardView.setOnClickListener {
             // Prepare the ingredients array using the Ingredient data class
             val ingredientsArray = recipe.ingredientsWithQuantities.map {
@@ -241,7 +229,6 @@ class ExploreFragment : Fragment() {
             // Use GeneralFunctions to handle the navigation
             generalFunctions.navigateToFragment(fragment)
         }
-
 
         // Add the card to the LinearLayout
         cardContainer.addView(cardView)
@@ -291,8 +278,6 @@ class ExploreFragment : Fragment() {
         return convertedMeasure
     }
 
-
-
     // Helper function to extract numeric value, including fractions (e.g., "1/2")
     private fun extractNumericValue(measure: String): Double? {
         return if (measure.contains('/')) {
@@ -316,6 +301,4 @@ class ExploreFragment : Fragment() {
             measure.filter { it.isDigit() || it == '.' }.toDoubleOrNull()
         }
     }
-
-
 }

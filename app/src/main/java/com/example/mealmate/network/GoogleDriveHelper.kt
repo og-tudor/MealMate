@@ -48,7 +48,7 @@ class GoogleDriveHelper(private val context: Context) {
             .build()
     }
 
-    private suspend fun getUserFolderId(userId: String): String {
+    suspend fun getUserFolderId(userId: String): String {
         val driveService = getDriveService()
         val query = "name = '$userId' and '$MEALMATE_FOLDER_ID' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
 
