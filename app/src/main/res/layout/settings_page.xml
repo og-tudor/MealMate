@@ -29,7 +29,7 @@
 
     <!-- Chef icon -->
     <ImageView
-        android:id="@+id/chef_icon"
+        android:id="@+id/profile_picture"
         android:layout_width="120dp"
         android:layout_height="120dp"
         android:src="@drawable/icon_chef"
@@ -47,7 +47,7 @@
         android:orientation="horizontal"
         android:padding="8dp"
         android:background="@drawable/dropdown_rounded_background"
-        app:layout_constraintTop_toBottomOf="@id/chef_icon"
+        app:layout_constraintTop_toBottomOf="@id/profile_picture"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="16dp"

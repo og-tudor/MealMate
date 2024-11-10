@@ -1,7 +1,10 @@
+import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
+import android.provider.MediaStore
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -11,31 +14,27 @@ import android.widget.GridLayout
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.core.content.ContextCompat
-import androidx.core.graphics.drawable.toBitmap
 import androidx.fragment.app.Fragment
 import com.example.mealmate.R
 import com.example.mealmate.dashboard.GeneralFunctions
 import com.example.mealmate.login.LoginPage
 import com.example.mealmate.utils.GoogleDriveHelper
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
+import java.io.InputStream
 
 class SettingsFragment : Fragment() {
 
     private lateinit var coverPhotoImage: ImageView
-    private var selectedImageUri: Uri? = null
-    private val db = FirebaseFirestore.getInstance()
-    private lateinit var cardContainer: GridLayout
-    private lateinit var generalFunctions: GeneralFunctions
+    private lateinit var profilePicture: ImageView
     private lateinit var homeButton: ImageButton
     private lateinit var discoverButton: ImageButton
     private lateinit var settingsButton: ImageButton
+    private val PICK_IMAGE_REQUEST = 1
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -46,10 +45,10 @@ class SettingsFragment : Fragment() {
         homeButton = view.findViewById(R.id.home_button)
         discoverButton = view.findViewById(R.id.discover_button)
         settingsButton = view.findViewById(R.id.settings_button)
-        cardContainer = view.findViewById(R.id.card_container)
+        profilePicture = view.findViewById(R.id.profile_picture)
         settingsButton.isSelected = true
 
-        generalFunctions = GeneralFunctions(requireActivity(), homeButton, discoverButton, settingsButton)
+        val generalFunctions = GeneralFunctions(requireActivity(), homeButton, discoverButton, settingsButton)
         homeButton.setOnClickListener { generalFunctions.selectButton(homeButton) }
         discoverButton.setOnClickListener { generalFunctions.selectButton(discoverButton) }
         settingsButton.setOnClickListener { generalFunctions.selectButton(settingsButton) }
@@ -67,32 +66,82 @@ class SettingsFragment : Fragment() {
             activity?.finish()
         }
 
-        val uploadButton = view.findViewById<Button>(R.id.upload_settings_button)
-        uploadButton.setOnClickListener {
-            CoroutineScope(Dispatchers.IO).launch {
+        // Load profile picture using caching
+        currentUser?.let {
+            loadProfilePicture(it.uid)
+        }
+
+        // Set profile picture click listener to open the gallery
+        profilePicture.setOnClickListener {
+            openGallery()
+        }
+
+        return view
+    }
+
+    private fun loadProfilePicture(userId: String) {
+        val googleDriveHelper = GoogleDriveHelper(requireContext())
+
+        // Check if profile picture is already cached
+        val cachedBitmap = googleDriveHelper.getCachedProfilePicture(userId)
+        if (cachedBitmap != null) {
+            // Set the cached image on the main thread
+            profilePicture.post {
+                profilePicture.setImageBitmap(cachedBitmap)
+            }
+        } else {
+            // Fetch from Drive if not cached
+            CoroutineScope(Dispatchers.Main).launch {
                 try {
-                    // Get a drawable resource and create a temporary file in cache directory
-                    val drawable = ContextCompat.getDrawable(requireContext(), R.drawable.placeholder)
-                    val file = File(requireContext().cacheDir, "placeholder.png")
-
-                    // Write the drawable to the file as a PNG
-                    val outputStream = FileOutputStream(file)
-                    drawable?.toBitmap()?.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
-                    outputStream.close()
-
-                    // Use the GoogleDriveHelper to upload the file
-                    val googleDriveHelper = GoogleDriveHelper(requireContext())
-                    googleDriveHelper.uploadSingleFile(file)
-
-                    // Log message to confirm action initiated
-                    Log.d("SettingsFragment", "Upload process started for file: ${file.name}")
+                    val bitmap: Bitmap? = googleDriveHelper.getUserProfilePicture(userId)
+                    if (bitmap != null) {
+                        // Set the image and cache it
+                        profilePicture.setImageBitmap(bitmap)
+                        googleDriveHelper.cacheProfilePicture(bitmap, userId)
+                    } else {
+                        Log.d("SettingsFragment", "No profile picture found, using default.")
+                    }
                 } catch (e: Exception) {
-                    Log.e("SettingsFragment", "Error preparing file for upload: ${e.message}", e)
+                    Log.e("SettingsFragment", "Error loading profile picture: ${e.message}", e)
                 }
             }
         }
+    }
 
+    private fun openGallery() {
+        val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+        startActivityForResult(intent, PICK_IMAGE_REQUEST)
+    }
 
-        return view
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == PICK_IMAGE_REQUEST && resultCode == Activity.RESULT_OK && data != null && data.data != null) {
+            val selectedImageUri: Uri = data.data!!
+            try {
+                val inputStream: InputStream? = requireContext().contentResolver.openInputStream(selectedImageUri)
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+
+                // Save the selected image to cache
+                val cacheFile = File(requireContext().cacheDir, "selected_profile_picture.png")
+                FileOutputStream(cacheFile).use { outputStream ->
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+                }
+
+                // Upload the selected image to Google Drive
+                val googleDriveHelper = GoogleDriveHelper(requireContext())
+                CoroutineScope(Dispatchers.IO).launch {
+                    googleDriveHelper.uploadUserProfilePicture(cacheFile)
+                    googleDriveHelper.cacheProfilePicture(bitmap, FirebaseAuth.getInstance().currentUser!!.uid)
+
+                    // Reload the fragment on the main thread
+                    CoroutineScope(Dispatchers.Main).launch {
+                        loadProfilePicture(FirebaseAuth.getInstance().currentUser!!.uid)
+                    }
+                }
+
+            } catch (e: Exception) {
+                Log.e("SettingsFragment", "Error handling selected image: ${e.message}", e)
+            }
+        }
     }
 }
