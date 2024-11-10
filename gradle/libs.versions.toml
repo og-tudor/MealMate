@@ -1,9 +1,15 @@
 [versions]
 agp = "8.7.0"
+glide = "4.13.2"
+googleApiClient = "1.32.1"
+googleApiServicesDrive = "v3-rev305-1.25.0"
+googleApiServicesDriveVersion = "v3-rev136-1.25.0"
+googleHttpClientJackson2 = "1.42.2"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 appcompat = "1.7.0"
+lottie = "5.2.0"
 material = "1.12.0"
 activity = "1.9.3"
 constraintlayout = "2.1.4"
@@ -11,19 +17,27 @@ kotlin = "2.0.21"
 coreKtx = "1.13.1"
 firebaseAuthKtx = "23.1.0"
 firebaseFirestoreKtx = "25.1.1"
+playServicesAuth = "21.2.0"
 
 [libraries]
 firebase-firestore = { module = "com.google.firebase:firebase-firestore" }
+glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
+google-api-client = { module = "com.google.api-client:google-api-client", version.ref = "googleApiClient" }
+google-api-services-drive = { module = "com.google.apis:google-api-services-drive", version.ref = "googleApiServicesDrive" }
+google-api-services-drive-vv3rev1361250 = { module = "com.google.apis:google-api-services-drive", version.ref = "googleApiServicesDriveVersion" }
+google-http-client-jackson2 = { module = "com.google.http-client:google-http-client-jackson2", version.ref = "googleHttpClientJackson2" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+lottie = { module = "com.airbnb.android:lottie", version.ref = "lottie" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 firebase-auth-ktx = { group = "com.google.firebase", name = "firebase-auth-ktx", version.ref = "firebaseAuthKtx" }
 firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-firestore-ktx", version.ref = "firebaseFirestoreKtx" }
+play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

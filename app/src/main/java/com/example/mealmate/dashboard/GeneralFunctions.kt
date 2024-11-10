@@ -1,5 +1,6 @@
 package com.example.mealmate.dashboard
 
+import SettingsFragment
 import android.content.Context
 import android.graphics.Color
 import android.os.Bundle
@@ -16,7 +17,6 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import com.example.mealmate.R
-import com.example.mealmate.SettingsFragment
 import com.example.mealmate.dashboard.home.ExploreFragment
 import com.example.mealmate.dashboard.home.SavedCategoriesFragment
 

@@ -12,7 +12,16 @@
           "package_name": "com.example.mealmate"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "771497686004-f4ah83ek8hlp5qtcp06kimpkv98na41g.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.mealmate",
+            "certificate_hash": "f49ee610d7dd5297b57358e7a9bde035cef786b3"
+          }
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCE0X1Ous7LjPa5JB52VY_ZwaOzN3Qv7ZQ"
