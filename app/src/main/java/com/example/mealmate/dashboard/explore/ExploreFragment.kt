@@ -1,5 +1,6 @@
 package com.example.mealmate.dashboard.home
 
+import Ingredient
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -22,7 +23,6 @@ import kotlinx.coroutines.launch
 import com.example.mealmate.dashboard.GeneralFunctions
 import com.example.mealmate.utils.AnimationHandler
 import com.example.mealmate.utils.FragmentSource
-import com.yourpackage.name.Ingredient
 import com.yourpackage.name.RecipeFragment
 import retrofit2.HttpException
 
@@ -127,7 +127,9 @@ class ExploreFragment : Fragment() {
                         }
 
                         // Create a combined list of pairs of ingredients and measures
-                        val ingredientsWithQuantities = measures.zip(ingredients)
+                        val ingredientsWithQuantities = measures.zip(ingredients).map {
+                                (quantity, name) -> Ingredient(name = name, quantity = quantity)
+                        }
 
                         val recipe = Recipe(
                             id = meal.idMeal,
@@ -163,7 +165,7 @@ class ExploreFragment : Fragment() {
                 mealData?.let { meal ->
                     // Use the conversion function for each measure in the ingredients list
                     val convertedIngredientsWithMeasures = meal.getIngredientsWithMeasures().map { (measure, ingredient) ->
-                        convertMeasureToGrams(measure) to ingredient
+                        Ingredient(name = ingredient, quantity = convertMeasureToGrams(measure))
                     }
 
                     val recipe = Recipe(
@@ -173,6 +175,7 @@ class ExploreFragment : Fragment() {
                         instructions = meal.strInstructions,
                         ingredientsWithQuantities = convertedIngredientsWithMeasures
                     )
+
 
                     addCardToContainer(recipe)
                 }
@@ -209,12 +212,14 @@ class ExploreFragment : Fragment() {
         // Set a click listener to open RecipeFragment with the recipe data
         cardView.setOnClickListener {
             // Prepare the ingredients array using the Ingredient data class
+            // Assuming you are mapping ingredients for some other usage
             val ingredientsArray = recipe.ingredientsWithQuantities.map {
                 Ingredient(
-                    name = it.second,  // Ingredient name
-                    quantity = it.first // Measure
+                    name = it.name,       // Access `name` property directly
+                    quantity = it.quantity // Access `quantity` property directly
                 )
             }.toTypedArray()
+
 
             // Create an instance of RecipeFragment with the recipe data
             val fragment = RecipeFragment.newInstance(

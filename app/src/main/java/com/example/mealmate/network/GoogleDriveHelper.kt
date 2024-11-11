@@ -32,6 +32,7 @@ class GoogleDriveHelper(private val context: Context) {
         private const val MEALMATE_FOLDER_ID = "1PAnMRX-Lco3npWNjz5IZZcNqB32O4wlY" // Constant for the MealMate folder ID
         private const val PROFILE_PICTURE_NAME = "profile_picture.png"
         private const val CATEGORY_PHOTO_NAME = "category_photo.png"
+        private const val RECIPE_PHOTO_NAME = "recipe_photo.png"
     }
 
     private fun getDriveService(): Drive {
@@ -288,6 +289,108 @@ class GoogleDriveHelper(private val context: Context) {
             null
         }
     }
+
+    // Function to retrieve or create a folder for a specific recipe in Google Drive
+    suspend fun getOrCreateRecipeFolder(userId: String, categoryId: String, recipeId: String): String {
+        val driveService = getDriveService()
+        val categoryFolderId = getOrCreateCategoryFolder(userId, categoryId)
+
+        val query = "name = '$recipeId' and '$categoryFolderId' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
+        val result: FileList = driveService.files().list()
+            .setQ(query)
+            .setSpaces("drive")
+            .setFields("files(id, name)")
+            .execute()
+
+        return if (result.files.isNotEmpty()) {
+            result.files[0].id
+        } else {
+            val folderMetadata = File().apply {
+                name = recipeId
+                mimeType = "application/vnd.google-apps.folder"
+                parents = listOf(categoryFolderId)
+            }
+            val folder = driveService.files().create(folderMetadata)
+                .setFields("id")
+                .execute()
+            Log.d("GoogleDriveHelper", "Created new folder for recipe $recipeId with ID: ${folder.id}")
+            folder.id
+        }
+    }
+
+    // Function to upload a recipe photo to the specified recipe folder in Google Drive
+    fun uploadRecipePhoto(recipeFolderId: String, photoData: ByteArray) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val driveService = getDriveService()
+
+                // Check if a recipe photo already exists and delete it
+                val query = "name = '$RECIPE_PHOTO_NAME' and '$recipeFolderId' in parents and trashed = false"
+                val result: FileList = driveService.files().list()
+                    .setQ(query)
+                    .setSpaces("drive")
+                    .setFields("files(id, name)")
+                    .execute()
+
+                if (result.files.isNotEmpty()) {
+                    for (file in result.files) {
+                        driveService.files().delete(file.id).execute()
+                        Log.d("GoogleDriveHelper", "Deleted existing recipe photo: ${file.id}")
+                    }
+                }
+
+                // Create a temporary file from the byte array
+                val tempFile = java.io.File.createTempFile("temp_recipe_photo", ".png", context.cacheDir)
+                tempFile.writeBytes(photoData)
+
+                // Upload the new recipe photo
+                val fileMetadata = File().apply {
+                    name = RECIPE_PHOTO_NAME
+                    parents = listOf(recipeFolderId)
+                }
+                val mediaContent = FileContent("image/png", tempFile)
+
+                val uploadedFile = driveService.files().create(fileMetadata, mediaContent)
+                    .setFields("id")
+                    .execute()
+
+                Log.d("GoogleDriveHelper", "Recipe photo uploaded successfully. File ID: ${uploadedFile.id}")
+
+                // Delete the temporary file after upload
+                tempFile.delete()
+
+            } catch (e: Exception) {
+                Log.e("GoogleDriveHelper", "Error uploading recipe photo: ${e.message}", e)
+            }
+        }
+    }
+
+    // Function to retrieve a recipe photo from Google Drive
+    suspend fun getRecipePhoto(recipeFolderId: String): Bitmap? = withContext(Dispatchers.IO) {
+        try {
+            val driveService = getDriveService()
+            val query = "name = '$RECIPE_PHOTO_NAME' and '$recipeFolderId' in parents and trashed = false"
+            val result: FileList = driveService.files().list()
+                .setQ(query)
+                .setSpaces("drive")
+                .setFields("files(id, name)")
+                .execute()
+
+            if (result.files.isNotEmpty()) {
+                val fileId = result.files[0].id
+                val inputStream = driveService.files().get(fileId).executeMediaAsInputStream()
+                BitmapFactory.decodeStream(inputStream)
+            } else {
+                Log.d("GoogleDriveHelper", "No recipe photo found.")
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("GoogleDriveHelper", "Error fetching recipe photo: ${e.message}", e)
+            null
+        }
+    }
+
+
 
 
 
