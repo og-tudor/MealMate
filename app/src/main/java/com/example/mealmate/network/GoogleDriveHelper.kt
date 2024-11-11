@@ -31,6 +31,7 @@ class GoogleDriveHelper(private val context: Context) {
     companion object {
         private const val MEALMATE_FOLDER_ID = "1PAnMRX-Lco3npWNjz5IZZcNqB32O4wlY" // Constant for the MealMate folder ID
         private const val PROFILE_PICTURE_NAME = "profile_picture.png"
+        private const val CATEGORY_PHOTO_NAME = "category_photo.png"
     }
 
     private fun getDriveService(): Drive {
@@ -76,42 +77,104 @@ class GoogleDriveHelper(private val context: Context) {
         }
     }
 
+    suspend fun getOrCreateCategoryFolder(userId: String, categoryId: String): String {
+        val driveService = getDriveService()
+        val userFolderId = getUserFolderId(userId)
 
+        val query = "name = '$categoryId' and '$userFolderId' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false"
+        val result: FileList = driveService.files().list()
+            .setQ(query)
+            .setSpaces("drive")
+            .setFields("files(id, name)")
+            .execute()
 
-    fun uploadFileToUserFolder(filePath: java.io.File) {
-        auth = FirebaseAuth.getInstance()
-        db = FirebaseFirestore.getInstance()
+        return if (result.files.isNotEmpty()) {
+            result.files[0].id
+        } else {
+            val folderMetadata = File().apply {
+                name = categoryId
+                mimeType = "application/vnd.google-apps.folder"
+                parents = listOf(userFolderId)
+            }
+            val folder = driveService.files().create(folderMetadata)
+                .setFields("id")
+                .execute()
+            Log.d("GoogleDriveHelper", "Created new folder for category $categoryId with ID: ${folder.id}")
+            folder.id
+        }
+    }
+
+    fun uploadCategoryPhoto(categoryFolderId: String, fileName: String, photoData: ByteArray) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val currentUser = FirebaseAuth.getInstance().currentUser
-                if (currentUser == null) {
-                    Log.e("GoogleDriveHelper", "User is not logged in")
-                    return@launch
+                val driveService = getDriveService()
+
+                // Check if a category photo already exists and delete it
+                val query = "name = '$CATEGORY_PHOTO_NAME' and '$categoryFolderId' in parents and trashed = false"
+                val result: FileList = driveService.files().list()
+                    .setQ(query)
+                    .setSpaces("drive")
+                    .setFields("files(id, name)")
+                    .execute()
+
+                if (result.files.isNotEmpty()) {
+                    for (file in result.files) {
+                        driveService.files().delete(file.id).execute()
+                        Log.d("GoogleDriveHelper", "Deleted existing category photo: ${file.id}")
+                    }
                 }
 
-                val userId = currentUser.uid
+                // Create a temporary file from the byte array
+                val tempFile = java.io.File.createTempFile("temp_category_photo", ".png", context.cacheDir)
+                tempFile.writeBytes(photoData)
 
-                // Get or create the user-specific folder ID
-                val userFolderId = getUserFolderId(userId)
-
-                // Prepare the file metadata for uploading
+                // Upload the new category photo
                 val fileMetadata = File().apply {
-                    name = filePath.name
-                    parents = listOf(userFolderId)
+                    name = fileName
+                    parents = listOf(categoryFolderId)
                 }
+                val mediaContent = FileContent("image/png", tempFile)
 
-                val mediaContent = FileContent("image/jpeg", filePath)
-
-                val uploadedFile = getDriveService().files().create(fileMetadata, mediaContent)
+                val uploadedFile = driveService.files().create(fileMetadata, mediaContent)
                     .setFields("id")
                     .execute()
 
-                Log.d("GoogleDriveHelper", "File uploaded successfully. File ID: ${uploadedFile.id}")
+                Log.d("GoogleDriveHelper", "Category photo uploaded successfully. File ID: ${uploadedFile.id}")
+
+                // Delete the temporary file after upload
+                tempFile.delete()
+
             } catch (e: Exception) {
-                Log.e("GoogleDriveHelper", "Error uploading file: ${e.message}", e)
+                Log.e("GoogleDriveHelper", "Error uploading category photo: ${e.message}", e)
             }
         }
     }
+
+
+    suspend fun getCategoryPhoto(categoryFolderId: String): Bitmap? = withContext(Dispatchers.IO) {
+        try {
+            val driveService = getDriveService()
+            val query = "name = '$CATEGORY_PHOTO_NAME' and '$categoryFolderId' in parents and trashed = false"
+            val result: FileList = driveService.files().list()
+                .setQ(query)
+                .setSpaces("drive")
+                .setFields("files(id, name)")
+                .execute()
+
+            if (result.files.isNotEmpty()) {
+                val fileId = result.files[0].id
+                val inputStream = driveService.files().get(fileId).executeMediaAsInputStream()
+                BitmapFactory.decodeStream(inputStream)
+            } else {
+                Log.d("GoogleDriveHelper", "No category photo found.")
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("GoogleDriveHelper", "Error fetching category photo: ${e.message}", e)
+            null
+        }
+    }
+
 
     fun uploadUserProfilePicture(filePath: java.io.File) {
         auth = FirebaseAuth.getInstance()

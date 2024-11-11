@@ -18,6 +18,10 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    lint {
+        baseline = file("lint-baseline.xml")
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -44,6 +48,7 @@ android {
             excludes += "META-INF/LICENSE.txt"
             excludes += "META-INF/NOTICE"
             excludes += "META-INF/NOTICE.txt"
+            excludes += "META-INF/versions/9/OSGI-INF/MANIFEST.MF"
         }
     }
 }
@@ -55,6 +60,7 @@ dependencies {
     implementation(libs.constraintlayout)
     implementation(libs.core.ktx)
     implementation(libs.firebase.firestore.ktx)
+    implementation(libs.identity.jvm)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
@@ -85,4 +91,6 @@ dependencies {
     implementation(libs.google.http.client.jackson2)
     implementation(libs.play.services.auth)
 
+    // Add Fragment KTX for ViewModel support
+    implementation("androidx.fragment:fragment-ktx:1.8.5")
 }

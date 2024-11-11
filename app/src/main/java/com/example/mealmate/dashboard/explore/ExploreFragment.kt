@@ -20,7 +20,6 @@ import com.example.mealmate.model.Recipe
 import com.example.mealmate.network.RetrofitInstance
 import kotlinx.coroutines.launch
 import com.example.mealmate.dashboard.GeneralFunctions
-import com.example.mealmate.model.Meal
 import com.example.mealmate.utils.AnimationHandler
 import com.example.mealmate.utils.FragmentSource
 import com.yourpackage.name.Ingredient

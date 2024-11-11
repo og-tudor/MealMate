@@ -11,14 +11,19 @@ import android.widget.Button
 import android.widget.EditText
 import com.google.android.material.snackbar.Snackbar
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.Observer
+import androidx.lifecycle.lifecycleScope
 import com.example.mealmate.dashboard.DashboardActivity
 import com.example.mealmate.dashboard.GeneralFunctions
+import com.example.mealmate.repository.CategoriesRepository
 import com.example.mealmate.utils.AnimationHandler
 import com.example.mealmate.utils.GoogleDriveHelper
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class LoginFragment : Fragment() {
     private lateinit var auth: FirebaseAuth
@@ -30,24 +35,25 @@ class LoginFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_login, container, false)
+        initializeComponents(view)
+        setupLoginButton(view)
+        setupRegisterLink(view)
+        return view
+    }
 
-        // Initialize Firebase Auth
+    private fun initializeComponents(view: View) {
         auth = FirebaseAuth.getInstance()
-
-        // Initialize GeneralFunctions
         generalFunctions = GeneralFunctions(requireActivity())
 
-        // Initialize AnimationHandler
         val lottieAnimationView = view.findViewById<com.airbnb.lottie.LottieAnimationView>(R.id.lottie_animation_view)
         animationHandler = AnimationHandler(lottieAnimationView)
+    }
 
-        // References to UI elements
+    private fun setupLoginButton(view: View) {
         val emailField = view.findViewById<EditText>(R.id.email)
         val passwordField = view.findViewById<EditText>(R.id.password)
         val loginButton = view.findViewById<Button>(R.id.login)
-        val registerLink = view.findViewById<View>(R.id.register_link)
 
-        // Set up the login button
         loginButton.setOnClickListener {
             val email = emailField.text.toString()
             val password = passwordField.text.toString()
@@ -57,44 +63,54 @@ class LoginFragment : Fragment() {
                 return@setOnClickListener
             }
 
-            // Show animation while verifying login and folder setup
             animationHandler.showAnimation(Color.parseColor("#E8602E"))
+            loginUser(email, password, view)
+        }
+    }
 
-            // Sign in with Firebase Authentication
-            auth.signInWithEmailAndPassword(email, password)
-                .addOnCompleteListener(requireActivity()) { task ->
-                    if (task.isSuccessful) {
-                        Log.d("LoginFragment", "signInWithEmail:success")
-                        verifyUserFolder { success ->
-                            animationHandler.hideAnimation() // Hide animation after verification
-                            if (success) {
-                                navigateToDashboard()
-                            } else {
-                                Snackbar.make(
-                                    view,
-                                    "Error setting up user folder. Please try again.",
-                                    Snackbar.LENGTH_LONG
-                                ).show()
-                            }
+    private fun loginUser(email: String, password: String, view: View) {
+        auth.signInWithEmailAndPassword(email, password)
+            .addOnCompleteListener(requireActivity()) { task ->
+                if (task.isSuccessful) {
+                    Log.d("LoginFragment", "signInWithEmail:success")
+                    verifyUserFolder { success ->
+                        if (success) {
+                            loadCategoriesAndNavigate(view)
+                        } else {
+                            showErrorSnackbar(view, "Error setting up user folder. Please try again.")
+                            animationHandler.hideAnimation()
                         }
-                    } else {
-                        animationHandler.hideAnimation() // Hide animation on failure
-                        Log.w("LoginFragment", "signInWithEmail:failure", task.exception)
-                        Snackbar.make(
-                            view,
-                            "Authentication failed: ${task.exception?.message}",
-                            Snackbar.LENGTH_LONG
-                        ).show()
                     }
+                } else {
+                    handleLoginFailure(task.exception, view)
                 }
-        }
+            }
+    }
 
-        // Navigate to RegisterFragment using GeneralFunctions
-        registerLink.setOnClickListener {
-            generalFunctions.navigateToFragment(RegisterFragment())
+    private fun loadCategoriesAndNavigate(view: View) {
+        CategoriesRepository.loadCategories(requireContext()) { success ->
+            if (success) {
+                Log.d("LoginFragment", "Categories loaded successfully")
+                animationHandler.hideAnimation()
+                val intent = Intent(requireContext(), DashboardActivity::class.java)
+                startActivity(intent)
+                activity?.finish() // Ensure we don't return to login on back
+            } else {
+                showErrorSnackbar(view, "Failed to load categories. Please try again.")
+                animationHandler.hideAnimation()
+            }
         }
+    }
 
-        return view
+
+    private fun handleLoginFailure(exception: Exception?, view: View) {
+        animationHandler.hideAnimation()
+        Log.w("LoginFragment", "signInWithEmail:failure", exception)
+        Snackbar.make(
+            view,
+            "Authentication failed: ${exception?.message}",
+            Snackbar.LENGTH_LONG
+        ).show()
     }
 
     private fun verifyUserFolder(callback: (Boolean) -> Unit) {
@@ -104,23 +120,32 @@ class LoginFragment : Fragment() {
                 try {
                     val googleDriveHelper = GoogleDriveHelper(requireContext())
                     val userFolderId = googleDriveHelper.getUserFolderId(currentUser.uid)
-                    Log.d("LoginFragment", "User folder verified with ID: $userFolderId")
-                    callback(true)
+                    if (userFolderId != null) {
+                        Log.d("LoginFragment", "User folder verified with ID: $userFolderId")
+                        callback(true)
+                    } else {
+                        Log.e("LoginFragment", "User folder ID is null")
+                        callback(false)
+                    }
                 } catch (e: Exception) {
                     Log.e("LoginFragment", "Error checking/creating user folder: ${e.message}", e)
                     callback(false)
                 }
             }
         } else {
+            Log.e("LoginFragment", "No authenticated user found")
             callback(false)
         }
     }
 
-    private fun navigateToDashboard() {
-        CoroutineScope(Dispatchers.Main).launch {
-            val intent = Intent(requireContext(), DashboardActivity::class.java)
-            startActivity(intent)
-            requireActivity().finish()
+    private fun showErrorSnackbar(view: View, message: String) {
+        Snackbar.make(view, message, Snackbar.LENGTH_LONG).show()
+    }
+
+    private fun setupRegisterLink(view: View) {
+        val registerLink = view.findViewById<View>(R.id.register_link)
+        registerLink.setOnClickListener {
+            generalFunctions.navigateToFragment(RegisterFragment())
         }
     }
 }

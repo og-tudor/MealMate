@@ -7,7 +7,6 @@ import com.example.mealmate.R
 import com.example.mealmate.dashboard.home.SavedCategoriesFragment
 
 class DashboardActivity : AppCompatActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dashboard)
