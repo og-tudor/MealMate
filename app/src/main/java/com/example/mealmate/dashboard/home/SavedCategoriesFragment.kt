@@ -41,12 +41,12 @@ class SavedCategoriesFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Initialize gallery launcher
+        // Initialize gallery launcher early in the lifecycle
         galleryLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == AppCompatActivity.RESULT_OK && result.data != null) {
-                selectedImageUri = result.data?.data
+                val selectedImageUri = result.data?.data
                 if (selectedImageUri != null) {
-                    selectedPhoto = getBitmapFromUri(selectedImageUri!!)
+                    selectedPhoto = getBitmapFromUri(selectedImageUri)
                     if (selectedPhoto != null) {
                         coverPhotoImage.setImageBitmap(selectedPhoto)
                         view?.findViewById<TextView>(R.id.upload_text)?.visibility = View.GONE
@@ -103,23 +103,6 @@ class SavedCategoriesFragment : Fragment() {
         }
     }
 
-//    override fun onResume() {
-//        super.onResume()
-//        loadCategories()
-//    }
-//
-//    private fun loadCategories() {
-//        val categories = categoriesViewModel.cachedCategories
-//        if (categories != null && categories.isNotEmpty()) {
-//            categories.forEach { category ->
-//                addCategoryCard(category)
-//            }
-//        } else {
-//            Log.d("SavedCategoriesFragment", "No categories found.")
-//            Toast.makeText(requireContext(), "No categories available", Toast.LENGTH_SHORT).show()
-//        }
-//    }
-
     private fun addCategoryCard(category: Category2) {
         val inflater = LayoutInflater.from(requireContext())
         val categoryCard = inflater.inflate(R.layout.categories_default_card, cardContainer, false)
@@ -175,8 +158,12 @@ class SavedCategoriesFragment : Fragment() {
 
         coverPhotoSection.setOnClickListener {
             Log.d("SavedCategoriesFragment", "Cover photo section clicked.")
-            openGallery()
+            generalFunctions.openGallery { bitmap: Bitmap ->
+                selectedPhoto = bitmap
+                coverPhotoImage.setImageBitmap(bitmap)
+            }
         }
+
 
         val saveButton = dialog.findViewById<Button>(R.id.save_button)
         val cancelButton = dialog.findViewById<Button>(R.id.cancel_button)
@@ -227,16 +214,5 @@ class SavedCategoriesFragment : Fragment() {
             e.printStackTrace()
             null
         }
-    }
-
-    private fun openGallery() {
-        val intent = Intent(Intent.ACTION_PICK).apply {
-            type = "image/*"
-        }
-        galleryLauncher.launch(intent)
-    }
-
-    companion object {
-        private const val REQUEST_PERMISSION_READ_STORAGE = 101
     }
 }
