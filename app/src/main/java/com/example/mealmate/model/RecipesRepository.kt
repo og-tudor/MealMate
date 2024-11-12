@@ -1,11 +1,13 @@
 package com.example.mealmate.repository
 
+import Ingredient
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
 import com.example.mealmate.model.Recipe
 import com.example.mealmate.utils.GoogleDriveHelper
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -145,5 +147,54 @@ object RecipesRepository {
     fun getCachedRecipesForCategory(categoryId: String): List<Recipe> {
         return cachedRecipes[categoryId] ?: emptyList()
     }
+
+    fun addIngredient(
+        context: Context,
+        categoryId: String,
+        recipeId: String,
+        newIngredient: Ingredient,
+        callback: (Boolean) -> Unit
+    ) {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (userId == null) {
+            Log.e("RecipesRepository", "User not authenticated.")
+            callback(false)
+            return
+        }
+
+        val recipeRef = firestore.collection("users").document(userId)
+            .collection("categories").document(categoryId)
+            .collection("recipes").document(recipeId)
+
+        // Use Firestore's arrayUnion to add a new ingredient to the ingredients list
+        recipeRef.update("ingredientsWithQuantities", FieldValue.arrayUnion(newIngredient))
+            .addOnSuccessListener {
+                Log.d("RecipesRepository", "Ingredient added successfully.")
+
+                // Update the cached version of the recipe if available
+                cachedRecipes[categoryId]?.find { it.id == recipeId }?.let { recipe ->
+                    // Directly add the new ingredient to the ingredientsWithQuantities list
+                    val updatedIngredients = recipe.ingredientsWithQuantities.toMutableList()
+                    updatedIngredients.add(newIngredient)
+
+                    // Replace the recipe in the cache with the updated ingredients list
+                    val updatedRecipe = recipe.copy(ingredientsWithQuantities = updatedIngredients)
+
+                    // Update the recipe in the cache
+                    cachedRecipes[categoryId] = cachedRecipes[categoryId]?.map {
+                        if (it.id == recipeId) updatedRecipe else it
+                    }?.toMutableList() ?: mutableListOf()
+                }
+
+                callback(true)
+            }
+            .addOnFailureListener { e ->
+                Log.e("RecipesRepository", "Error adding ingredient: ${e.message}", e)
+                callback(false)
+            }
+    }
+
+
+
 
 }

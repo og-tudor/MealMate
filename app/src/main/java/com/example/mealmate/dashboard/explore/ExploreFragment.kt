@@ -230,6 +230,7 @@ class ExploreFragment : Fragment() {
                 instructions = recipe.instructions.ifEmpty { "No instructions available" },
                 source = FragmentSource.EXPLORE_PAGE,
                 categoryID = null,
+                recipeID = null
             )
 
             // Use GeneralFunctions to handle the navigation

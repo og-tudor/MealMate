@@ -3,7 +3,6 @@ package com.yourpackage.name
 import Ingredient
 import android.app.Dialog
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Bundle
@@ -12,6 +11,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.EditText
 import android.widget.GridLayout
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -62,8 +62,9 @@ class RecipeFragment : Fragment() {
         settingsButton.setOnClickListener { generalFunctions.selectButton(settingsButton) }
         imageBitmap = arguments?.getParcelable("imageBitmap")
 
-        setupReturnButton(view)
+        setupButtons(view)
         setupSaveRecipeButton(view)
+        setupEditButtonListeners(view)
 
         // Retrieve the arguments
         recipeName = arguments?.getString("recipeName") ?: "No Title"
@@ -76,9 +77,92 @@ class RecipeFragment : Fragment() {
         return view
     }
 
-    private fun setupReturnButton(view: View) {
+    private fun setupEditButtonListeners(view: View) {
+        val editButton: ImageView = view.findViewById(R.id.edit_recipe_button)
+        val saveEditButton: ImageView = view.findViewById(R.id.save_edit_recipe_button)
+        val ingredientAddNewRow: View = view.findViewById(R.id.addNewIngredientRow)
+
+        saveEditButton.visibility = View.GONE
+        ingredientAddNewRow.visibility = View.GONE
+
+        // Edit button click listener
+        editButton.setOnClickListener {
+            editButton.visibility = View.GONE
+            saveEditButton.visibility = View.VISIBLE
+            ingredientAddNewRow.visibility = View.VISIBLE
+        }
+
+        // Save button click listener
+        saveEditButton.setOnClickListener {
+            saveEditButton.visibility = View.GONE
+            ingredientAddNewRow.visibility = View.GONE
+            editButton.visibility = View.VISIBLE
+        }
+
+        // Ingredient add new row click listener
+        ingredientAddNewRow.setOnClickListener {
+            showAddIngredientDialog()
+        }
+    }
+
+    private fun showAddIngredientDialog() {
+        val dialog = Dialog(requireContext())
+        dialog.setContentView(R.layout.dialog_add_ingredient) // Create a layout resource file for this dialog
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val ingredientNameInput = dialog.findViewById<EditText>(R.id.ingredient_name_input)
+        val ingredientQuantityInput = dialog.findViewById<EditText>(R.id.ingredient_quantity_input)
+        val addButton = dialog.findViewById<Button>(R.id.add_button)
+
+        addButton.setOnClickListener {
+            val name = ingredientNameInput.text.toString().trim()
+            val quantity = ingredientQuantityInput.text.toString().trim()
+
+            if (name.isNotEmpty() && quantity.isNotEmpty()) {
+                val newIngredient = Ingredient(name, quantity)
+                val categoryID = arguments?.getString("categoryID")
+                val recipeID = arguments?.getString("recipeID")
+                // Add the ingredient to the repository (you might need to adjust this to your repository logic)
+                RecipesRepository.addIngredient(requireContext(), categoryID!!, recipeID!!, newIngredient) { success ->
+                    if (success) {
+                        Toast.makeText(requireContext(), "Ingredient added successfully", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(requireContext(), "Failed to add ingredient", Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                // Optionally, add the new ingredient to the UI immediately
+                addIngredientToUI(newIngredient)
+
+                dialog.dismiss()
+            } else {
+                Toast.makeText(requireContext(), "Please enter both name and quantity", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        dialog.show()
+    }
+
+    private fun addIngredientToUI(ingredient: Ingredient) {
+        val ingredientsSection = view?.findViewById<LinearLayout>(R.id.ingredient_section)
+        val inflater = LayoutInflater.from(context)
+
+        val ingredientRow = inflater.inflate(R.layout.ingredient_row, ingredientsSection, false)
+        val ingredientNameTextView = ingredientRow.findViewById<TextView>(R.id.ingredient_name)
+        val ingredientQuantityTextView = ingredientRow.findViewById<TextView>(R.id.ingredient_quantity)
+
+        ingredientNameTextView.text = ingredient.name
+        ingredientQuantityTextView.text = ingredient.quantity
+
+        ingredientsSection?.addView(ingredientRow)
+    }
+
+    private fun setupButtons(view: View) {
         val returnButton: TextView = view.findViewById(R.id.return_button)
         returnButton.visibility = View.VISIBLE
+
+        val editButton: ImageView = view.findViewById(R.id.edit_recipe_button)
+        editButton.visibility = View.GONE
 
         val sourceString = arguments?.getString("SOURCE")
         val source = sourceString?.let { FragmentSource.valueOf(it) } ?: FragmentSource.UNKNOWN_PAGE
@@ -91,6 +175,7 @@ class RecipeFragment : Fragment() {
             }
             FragmentSource.SAVED_RECIPIES_LIBRARY -> {
                 homeButton.isSelected = true
+                editButton.visibility = View.VISIBLE
                 returnButton.text = "< Recipes"
                 val savedRecipesFragment = SavedRecipesFragment()
                 savedRecipesFragment.arguments = Bundle().apply {
@@ -262,7 +347,8 @@ class RecipeFragment : Fragment() {
             ingredients: Array<Ingredient>?,
             instructions: String?,
             source: FragmentSource,
-            categoryID: String?
+            categoryID: String?,
+            recipeID: String?
         ): RecipeFragment {
             val fragment = RecipeFragment()
             val args = Bundle().apply {
@@ -273,6 +359,7 @@ class RecipeFragment : Fragment() {
                 putString("instructions", instructions)
                 putString("SOURCE", source.name)
                 putString("categoryID", categoryID)
+                putString("recipeID", recipeID)
             }
             fragment.arguments = args
             return fragment

@@ -37,7 +37,7 @@ import com.yourpackage.name.RecipeFragment
 class SavedRecipesFragment : Fragment() {
 
     private lateinit var coverPhotoImage: ImageView
-    private lateinit var selectedPhotoBitmap: Bitmap
+    private var selectedPhotoBitmap: Bitmap? = null
     private lateinit var cardContainer: GridLayout
     private lateinit var generalFunctions: GeneralFunctions
     private lateinit var homeButton: ImageButton
@@ -55,15 +55,11 @@ class SavedRecipesFragment : Fragment() {
         galleryLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == AppCompatActivity.RESULT_OK && result.data != null) {
                 val selectedImageUri = result.data?.data
-                if (selectedImageUri != null) {
-                    selectedPhoto = getBitmapFromUri(selectedImageUri)
-                    if (selectedPhoto != null) {
-                        coverPhotoImage.setImageBitmap(selectedPhoto)
-                        view?.findViewById<TextView>(R.id.upload_text)?.visibility = View.GONE
-                        coverPhotoImage.layoutParams.width = LinearLayout.LayoutParams.MATCH_PARENT
-                        coverPhotoImage.layoutParams.height = LinearLayout.LayoutParams.MATCH_PARENT
+                selectedImageUri?.let {
+                    selectedPhoto = getBitmapFromUri(it)
+                    selectedPhoto?.let { bitmap ->
+                        coverPhotoImage.setImageBitmap(bitmap)
                         coverPhotoImage.scaleType = ImageView.ScaleType.CENTER_CROP
-                        coverPhotoImage.requestLayout()
                     }
                 }
             }
@@ -150,7 +146,8 @@ class SavedRecipesFragment : Fragment() {
                 ingredients = ingredientsArray,
                 instructions = recipe.instructions,
                 source = FragmentSource.SAVED_RECIPIES_LIBRARY,
-                categoryID = categoryId
+                categoryID = categoryId,
+                recipeID = recipe.id
             )
 
 // Use GeneralFunctions to handle the navigation
@@ -211,12 +208,10 @@ class SavedRecipesFragment : Fragment() {
         val coverPhotoSection = dialog.findViewById<LinearLayout>(R.id.cover_photo_section)
 
         coverPhotoSection.setOnClickListener {
-            Log.d("SavedCategoriesFragment", "Cover photo section clicked.")
-            generalFunctions.openGallery { bitmap: Bitmap ->
-                selectedPhoto = bitmap
-                coverPhotoImage.setImageBitmap(bitmap)
-            }
+            val galleryIntent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+            galleryLauncher.launch(galleryIntent)
         }
+
 
         val saveButton = dialog.findViewById<Button>(R.id.save_button)
         val cancelButton = dialog.findViewById<Button>(R.id.cancel_button)
@@ -259,23 +254,28 @@ class SavedRecipesFragment : Fragment() {
     }
 
     private fun saveRecipeToRepository(recipeName: String, categoryId: String) {
-        val recipe = Recipe(
-            id = "", // Let the repository generate an ID if needed
-            title = recipeName,
-            instructions = "",
-            ingredientsWithQuantities = emptyList(),
-            imageBitmap = selectedPhotoBitmap
-        )
+        selectedPhotoBitmap?.let { bitmap ->
+            val recipe = Recipe(
+                id = "", // Let the repository generate an ID if needed
+                title = recipeName,
+                instructions = "",
+                ingredientsWithQuantities = emptyList(),
+                imageBitmap = bitmap
+            )
 
-        RecipesRepository.addNewRecipe(requireContext(), categoryId, recipe, selectedPhotoBitmap) { success ->
-            if (success) {
-                Toast.makeText(requireContext(), "Recipe added successfully!", Toast.LENGTH_SHORT).show()
-                createRecipeCard(recipe)
-            } else {
-                Toast.makeText(requireContext(), "Error adding recipe", Toast.LENGTH_SHORT).show()
+            RecipesRepository.addNewRecipe(requireContext(), categoryId, recipe, bitmap) { success ->
+                if (success) {
+                    Toast.makeText(requireContext(), "Recipe added successfully!", Toast.LENGTH_SHORT).show()
+                    createRecipeCard(recipe)
+                } else {
+                    Toast.makeText(requireContext(), "Error adding recipe", Toast.LENGTH_SHORT).show()
+                }
             }
+        } ?: run {
+            Toast.makeText(requireContext(), "Please select a photo", Toast.LENGTH_SHORT).show()
         }
     }
+
 
     private fun getBitmapFromUri(uri: Uri): Bitmap? {
         return try {

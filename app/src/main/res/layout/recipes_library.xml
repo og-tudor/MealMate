@@ -6,7 +6,6 @@
     android:layout_height="match_parent"
     android:background="#E0CFB7">
 
-    <!-- Container LinearLayout for Search Bar and Icon -->
     <include
         android:id="@+id/search_header"
         layout="@layout/search_header"
@@ -41,7 +40,9 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:gravity="center_horizontal"
-            android:paddingTop="16dp"> <!-- Add some padding at the top if needed -->
+            android:paddingTop="16dp"
+            android:clipToPadding="false"
+            >
 
             <GridLayout
                 android:id="@+id/card_container"
@@ -49,7 +50,9 @@
                 android:layout_height="wrap_content"
                 android:columnCount="3"
                 android:orientation="horizontal"
-                android:layout_gravity="top|center_horizontal|left">
+                android:layout_gravity="top|center_horizontal"
+                android:useDefaultMargins="true">
+
 
                 <!-- Recipe Cards -->
                 <include
