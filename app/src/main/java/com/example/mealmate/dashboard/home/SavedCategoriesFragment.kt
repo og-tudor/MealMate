@@ -4,7 +4,9 @@ import Category2
 import InitialsDrawable
 import android.app.Dialog
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.ImageDecoder
 import android.net.Uri
@@ -19,12 +21,15 @@ import android.widget.*
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.fragment.app.Fragment
 import com.example.mealmate.R
 import com.example.mealmate.SavedRecipesFragment
 import com.example.mealmate.dashboard.GeneralFunctions
 import com.example.mealmate.repository.CategoriesRepository
+import java.util.jar.Manifest
 
 class SavedCategoriesFragment : Fragment() {
 
@@ -206,8 +211,14 @@ class SavedCategoriesFragment : Fragment() {
         return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 val source = ImageDecoder.createSource(requireContext().contentResolver, uri)
-                ImageDecoder.decodeBitmap(source)
+                val options = ImageDecoder.OnHeaderDecodedListener { decoder, info, source ->
+                    decoder.setTargetSize(512, 512) // Reduce image size
+                }
+                ImageDecoder.decodeBitmap(source, options)
             } else {
+                val options = BitmapFactory.Options().apply {
+                    inSampleSize = 4 // Adjust sample size to reduce image size
+                }
                 MediaStore.Images.Media.getBitmap(requireContext().contentResolver, uri)
             }
         } catch (e: Exception) {
@@ -215,4 +226,5 @@ class SavedCategoriesFragment : Fragment() {
             null
         }
     }
+
 }
