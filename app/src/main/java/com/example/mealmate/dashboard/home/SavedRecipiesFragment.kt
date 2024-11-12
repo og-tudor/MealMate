@@ -6,6 +6,7 @@ import android.app.Dialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
@@ -22,11 +23,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import com.airbnb.lottie.LottieAnimationView
 import com.example.mealmate.dashboard.GeneralFunctions
 import com.example.mealmate.dashboard.home.SavedCategoriesFragment
 import com.example.mealmate.model.Recipe
 import com.example.mealmate.repository.CategoriesRepository
 import com.example.mealmate.repository.RecipesRepository
+import com.example.mealmate.utils.AnimationHandler
 import com.example.mealmate.utils.FragmentSource
 import com.google.firebase.auth.FirebaseAuth
 import com.yourpackage.name.RecipeFragment
@@ -43,6 +46,8 @@ class SavedRecipesFragment : Fragment() {
     private var selectedPhoto: Bitmap? = null
     private lateinit var galleryLauncher: ActivityResultLauncher<Intent>
     private lateinit var categoryId: String
+    private lateinit var animationHandler: AnimationHandler
+    private lateinit var lottieAnimationView: LottieAnimationView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -95,7 +100,11 @@ class SavedRecipesFragment : Fragment() {
         val recipeAddNewCardButton = view.findViewById<View>(R.id.new_recipe_card)
         recipeAddNewCardButton.setOnClickListener { showAddRecipeDialog(categoryId) }
 
+
+        lottieAnimationView = view.findViewById(R.id.lottie_animation_view)
+        animationHandler = AnimationHandler(lottieAnimationView)
         // Load recipes from RecipeRepository
+        animationHandler.showAnimation(Color.parseColor("#E8602E"))
         loadRecipes(categoryId)
 
         return view
@@ -113,6 +122,7 @@ class SavedRecipesFragment : Fragment() {
             if (success) {
                 val recipes = RecipesRepository.getCachedRecipesForCategory(categoryId)
                 recipes.forEach { recipe -> createRecipeCard(recipe) }
+                animationHandler.hideAnimation()
             } else {
                 Toast.makeText(requireContext(), "Error loading recipes", Toast.LENGTH_SHORT).show()
             }
@@ -132,15 +142,20 @@ class SavedRecipesFragment : Fragment() {
                 Ingredient(name, quantity)
             }.toTypedArray()
 
+// Create an instance of RecipeFragment with the recipe data
             val fragment = RecipeFragment.newInstance(
                 recipeName = recipe.title,
-                imageUri = recipe.imageUrl,
+                imageUri = null,                     // Set imageUri to null since we're using imageBitmap
+                imageBitmap = recipe.imageBitmap,     // Pass the Bitmap retrieved from RecipesRepository
                 ingredients = ingredientsArray,
                 instructions = recipe.instructions,
-                source = FragmentSource.SAVED_RECIPIES_LIBRARY
+                source = FragmentSource.SAVED_RECIPIES_LIBRARY,
+                categoryID = categoryId
             )
 
+// Use GeneralFunctions to handle the navigation
             generalFunctions.navigateToFragment(fragment)
+
         }
 
         cardContainer.addView(recipeCard)

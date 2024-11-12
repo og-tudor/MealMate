@@ -2,6 +2,9 @@ package com.yourpackage.name
 
 import Ingredient
 import android.app.Dialog
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Bundle
 import android.view.Gravity
@@ -38,6 +41,8 @@ class RecipeFragment : Fragment() {
     private var imageUri: Uri? = null
     private var ingredients: Array<Ingredient> = emptyArray()
     private lateinit var instructions: String
+    private var imageBitmap: Bitmap? = null
+
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -55,6 +60,7 @@ class RecipeFragment : Fragment() {
         homeButton.setOnClickListener { generalFunctions.selectButton(homeButton) }
         discoverButton.setOnClickListener { generalFunctions.selectButton(discoverButton) }
         settingsButton.setOnClickListener { generalFunctions.selectButton(settingsButton) }
+        imageBitmap = arguments?.getParcelable("imageBitmap")
 
         setupReturnButton(view)
         setupSaveRecipeButton(view)
@@ -76,7 +82,7 @@ class RecipeFragment : Fragment() {
 
         val sourceString = arguments?.getString("SOURCE")
         val source = sourceString?.let { FragmentSource.valueOf(it) } ?: FragmentSource.UNKNOWN_PAGE
-
+        val categoryID = arguments?.getString("categoryID")
         val returnFragment: Fragment? = when (source) {
             FragmentSource.EXPLORE_PAGE -> {
                 discoverButton.isSelected = true
@@ -86,14 +92,18 @@ class RecipeFragment : Fragment() {
             FragmentSource.SAVED_RECIPIES_LIBRARY -> {
                 homeButton.isSelected = true
                 returnButton.text = "< Recipes"
-                SavedRecipesFragment()
+                val savedRecipesFragment = SavedRecipesFragment()
+                savedRecipesFragment.arguments = Bundle().apply {
+                    putString("categoryId", categoryID)
+                }
+                savedRecipesFragment
             }
             else -> null
         }
 
         returnButton.setOnClickListener {
             returnFragment?.let {
-                generalFunctions.navigateToFragment(it, hideView = returnButton)
+                generalFunctions.navigateToFragment(it)
             }
         }
     }
@@ -120,13 +130,27 @@ class RecipeFragment : Fragment() {
         val instructionsSection = view.findViewById<LinearLayout>(R.id.instructions_section)
 
         recipeNameTextView.text = recipeName
-        imageUri?.let {
-            Glide.with(this)
-                .load(it)
-                .placeholder(R.drawable.placeholder)
-                .into(recipeImageView)
-        } ?: recipeImageView.setImageResource(R.drawable.placeholder)
 
+        // Load image based on source
+        val source = arguments?.getString("SOURCE")?.let { FragmentSource.valueOf(it) }
+        when (source) {
+            FragmentSource.EXPLORE_PAGE -> {
+                imageUri?.let {
+                    Glide.with(this)
+                        .load(it)
+                        .placeholder(R.drawable.placeholder)
+                        .into(recipeImageView)
+                } ?: recipeImageView.setImageResource(R.drawable.placeholder)
+            }
+            FragmentSource.SAVED_RECIPIES_LIBRARY -> {
+                imageBitmap?.let {
+                    recipeImageView.setImageBitmap(it)
+                } ?: recipeImageView.setImageResource(R.drawable.placeholder)
+            }
+            else -> recipeImageView.setImageResource(R.drawable.placeholder)
+        }
+
+        // Set up ingredients
         ingredientsSection.removeAllViews()
         ingredients.forEach { ingredient ->
             val ingredientRow = inflater.inflate(R.layout.ingredient_row, ingredientsSection, false)
@@ -138,6 +162,7 @@ class RecipeFragment : Fragment() {
             ingredientsSection.addView(ingredientRow)
         }
 
+        // Set up instructions
         instructionsSection.removeAllViews()
         val instructionTextView = TextView(context).apply {
             text = instructions
@@ -145,6 +170,8 @@ class RecipeFragment : Fragment() {
         }
         instructionsSection.addView(instructionTextView)
     }
+
+
 
     private fun showSaveToCategoryDialog() {
         val dialog = Dialog(requireContext())
@@ -201,34 +228,55 @@ class RecipeFragment : Fragment() {
             ingredientsWithQuantities = ingredients.map { Ingredient(it.name, it.quantity) } // Map to Ingredient objects
         )
 
-        RecipesRepository.addNewRecipe(requireContext(), categoryId, recipe, null) { success ->
-            if (success) {
-                Toast.makeText(requireContext(), "Recipe added successfully!", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(requireContext(), "Error adding recipe", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
+        // Use Glide to fetch the image from the URL and decode it into a Bitmap
+        Glide.with(this)
+            .asBitmap()
+            .load(imageUri) // This should be the URL of the image
+            .into(object : com.bumptech.glide.request.target.CustomTarget<Bitmap>() {
+                override fun onResourceReady(resource: Bitmap, transition: com.bumptech.glide.request.transition.Transition<in Bitmap>?) {
+                    // Proceed to save recipe to Firestore with the downloaded Bitmap
+                    RecipesRepository.addNewRecipe(requireContext(), categoryId, recipe, resource) { success ->
+                        if (success) {
+                            Toast.makeText(requireContext(), "Recipe added successfully!", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(requireContext(), "Error adding recipe", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
 
+                override fun onLoadCleared(placeholder: Drawable?) {
+                    // Handle if needed when Glide clears the image (e.g., release resources)
+                }
+
+                override fun onLoadFailed(errorDrawable: Drawable?) {
+                    Toast.makeText(requireContext(), "Failed to load image", Toast.LENGTH_SHORT).show()
+                }
+            })
+    }
 
     companion object {
         fun newInstance(
             recipeName: String,
-            imageUri: String,
+            imageUri: String?,
+            imageBitmap: Bitmap?,
             ingredients: Array<Ingredient>?,
             instructions: String?,
-            source: FragmentSource
+            source: FragmentSource,
+            categoryID: String?
         ): RecipeFragment {
             val fragment = RecipeFragment()
             val args = Bundle().apply {
                 putString("recipeName", recipeName)
                 putString("imageUri", imageUri)
+                putParcelable("imageBitmap", imageBitmap)
                 putSerializable("ingredients", ingredients ?: emptyArray<Ingredient>())
                 putString("instructions", instructions)
                 putString("SOURCE", source.name)
+                putString("categoryID", categoryID)
             }
             fragment.arguments = args
             return fragment
         }
     }
+
 }

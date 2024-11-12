@@ -224,14 +224,17 @@ class ExploreFragment : Fragment() {
             // Create an instance of RecipeFragment with the recipe data
             val fragment = RecipeFragment.newInstance(
                 recipeName = recipe.title.ifEmpty { "No Title" },
-                imageUri = recipe.imageUrl.ifEmpty { "" },
+                imageUri = recipe.imageUrl.ifEmpty { "" },  // Use URL if provided
+                imageBitmap = null,                         // Explicitly set to null for Explore page
                 ingredients = ingredientsArray,
                 instructions = recipe.instructions.ifEmpty { "No instructions available" },
-                source = FragmentSource.EXPLORE_PAGE
+                source = FragmentSource.EXPLORE_PAGE,
+                categoryID = null,
             )
 
             // Use GeneralFunctions to handle the navigation
             generalFunctions.navigateToFragment(fragment)
+
         }
 
         // Add the card to the LinearLayout
