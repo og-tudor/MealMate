@@ -42,6 +42,7 @@ class RecipeFragment : Fragment() {
     private var ingredients: Array<Ingredient> = emptyArray()
     private lateinit var instructions: String
     private var imageBitmap: Bitmap? = null
+    private lateinit var linstructionEditText: EditText
 
 
     override fun onCreateView(
@@ -69,7 +70,7 @@ class RecipeFragment : Fragment() {
         // Retrieve the arguments
         recipeName = arguments?.getString("recipeName") ?: "No Title"
         imageUri = arguments?.getString("imageUri")?.let { Uri.parse(it) }
-        ingredients = arguments?.getSerializable("ingredients") as? Array<Ingredient> ?: emptyArray()
+        ingredients = arguments?.getParcelableArray("ingredients")?.filterIsInstance<Ingredient>()?.toTypedArray() ?: emptyArray()
         instructions = arguments?.getString("instructions") ?: "No instructions available"
 
         displayRecipeDetails(view, inflater)
@@ -82,20 +83,25 @@ class RecipeFragment : Fragment() {
         val saveEditButton: ImageView = view.findViewById(R.id.save_edit_recipe_button)
         val ingredientAddNewRow: View = view.findViewById(R.id.addNewIngredientRow)
 
+        val editInstructinsButton: ImageView = view.findViewById(R.id.icon_edit_instructions)
+
         saveEditButton.visibility = View.GONE
         ingredientAddNewRow.visibility = View.GONE
+        editInstructinsButton.visibility = View.GONE
 
         // Edit button click listener
         editButton.setOnClickListener {
             editButton.visibility = View.GONE
             saveEditButton.visibility = View.VISIBLE
             ingredientAddNewRow.visibility = View.VISIBLE
+            editInstructinsButton.visibility = View.VISIBLE
         }
 
         // Save button click listener
         saveEditButton.setOnClickListener {
             saveEditButton.visibility = View.GONE
             ingredientAddNewRow.visibility = View.GONE
+            editInstructinsButton.visibility = View.GONE
             editButton.visibility = View.VISIBLE
         }
 
@@ -148,6 +154,11 @@ class RecipeFragment : Fragment() {
         val inflater = LayoutInflater.from(context)
 
         val ingredientRow = inflater.inflate(R.layout.ingredient_row, ingredientsSection, false)
+        val params = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        ingredientRow.layoutParams = params
         val ingredientNameTextView = ingredientRow.findViewById<TextView>(R.id.ingredient_name)
         val ingredientQuantityTextView = ingredientRow.findViewById<TextView>(R.id.ingredient_quantity)
 
@@ -220,12 +231,14 @@ class RecipeFragment : Fragment() {
         val source = arguments?.getString("SOURCE")?.let { FragmentSource.valueOf(it) }
         when (source) {
             FragmentSource.EXPLORE_PAGE -> {
-                imageUri?.let {
+                if (imageUri != null) {
                     Glide.with(this)
-                        .load(it)
+                        .load(imageUri)
                         .placeholder(R.drawable.placeholder)
                         .into(recipeImageView)
-                } ?: recipeImageView.setImageResource(R.drawable.placeholder)
+                } else {
+                    recipeImageView.setImageResource(R.drawable.placeholder)
+                }
             }
             FragmentSource.SAVED_RECIPIES_LIBRARY -> {
                 imageBitmap?.let {
@@ -239,6 +252,11 @@ class RecipeFragment : Fragment() {
         ingredientsSection.removeAllViews()
         ingredients.forEach { ingredient ->
             val ingredientRow = inflater.inflate(R.layout.ingredient_row, ingredientsSection, false)
+            val params = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            ingredientRow.layoutParams = params
             val ingredientNameTextView = ingredientRow.findViewById<TextView>(R.id.ingredient_name)
             val ingredientQuantityTextView = ingredientRow.findViewById<TextView>(R.id.ingredient_quantity)
 
@@ -248,12 +266,19 @@ class RecipeFragment : Fragment() {
         }
 
         // Set up instructions
-        instructionsSection.removeAllViews()
-        val instructionTextView = TextView(context).apply {
-            text = instructions
+        // Initialize linstructionEditText within displayRecipeDetails
+        linstructionEditText = EditText(requireContext()).apply {
+            setText(instructions)
             setPadding(16, 16, 16, 16)
+            isFocusable = false
+            isFocusableInTouchMode = false
+            isCursorVisible = false
+            isEnabled = false
         }
-        instructionsSection.addView(instructionTextView)
+
+        // Add linstructionEditText to instructionsSection
+        instructionsSection.removeAllViews()
+        instructionsSection.addView(linstructionEditText)
     }
 
 
@@ -308,10 +333,11 @@ class RecipeFragment : Fragment() {
     private fun saveRecipeToFirestore(categoryId: String) {
         val recipe = Recipe(
             title = recipeName,
-            imageUrl = imageUri.toString(),
+            imageUrl = imageUri?.toString() ?: "", // Provide a default empty string if null
             instructions = instructions,
-            ingredientsWithQuantities = ingredients.map { Ingredient(it.name, it.quantity) } // Map to Ingredient objects
+            ingredientsWithQuantities = ingredients.map { Ingredient(it.name, it.quantity) }
         )
+
 
         // Use Glide to fetch the image from the URL and decode it into a Bitmap
         Glide.with(this)
@@ -355,7 +381,7 @@ class RecipeFragment : Fragment() {
                 putString("recipeName", recipeName)
                 putString("imageUri", imageUri)
                 putParcelable("imageBitmap", imageBitmap)
-                putSerializable("ingredients", ingredients ?: emptyArray<Ingredient>())
+                putParcelableArray("ingredients", ingredients)
                 putString("instructions", instructions)
                 putString("SOURCE", source.name)
                 putString("categoryID", categoryID)

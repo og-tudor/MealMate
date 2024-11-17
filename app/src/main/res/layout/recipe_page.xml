@@ -153,11 +153,25 @@
 
             <!-- Horizontal spacer line-->
             <View
+                android:id="@+id/spacer_line"
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:layout_marginStart="16dp"
                 android:layout_marginEnd="16dp"
                 android:background="#1E2220" />
+
+            <ImageView
+                android:id="@+id/icon_edit_instructions"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginEnd="20dp"
+                android:layout_marginTop="8dp"
+                android:layout_gravity="right"
+                android:src="@drawable/icon_edit"
+                android:contentDescription="Edit Icon"
+                app:layout_constraintTop_toBottomOf="@id/spacer_line"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:tint="#D94209" />
 
             <!-- Instructions Section -->
             <LinearLayout
@@ -167,15 +181,22 @@
                 android:orientation="vertical"
                 android:padding="16dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="@font/lateef"
-                    android:text="1. Boil pasta."
-                    android:textColor="#000000"
-                    android:textSize="16sp" />
-                <!-- More TextViews for instructions -->
+                <!-- Editable instruction item -->
+<!--                <EditText-->
+<!--                    android:id="@+id/instruction_1"-->
+<!--                    android:layout_width="wrap_content"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    android:text="1. Placeholder instruction."-->
+<!--                    android:fontFamily="@font/lateef"-->
+<!--                    android:textColor="#000000"-->
+<!--                    android:textSize="14sp"-->
+<!--                    android:focusable="false"-->
+<!--                    android:focusableInTouchMode="false"-->
+<!--                    android:background="@null"/>-->
+
+                <!-- Repeat EditText for each instruction item -->
             </LinearLayout>
+
         </LinearLayout>
     </ScrollView>
 

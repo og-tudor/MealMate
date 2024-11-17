@@ -105,15 +105,21 @@ object RecipesRepository {
                 if (photo != null) {
                     uploadRecipePhotoToDrive(context, userId, categoryId, newRecipeId, photo) { isSuccess ->
                         if (isSuccess) {
-                            val newRecipe = recipe.copy(id = newRecipeId)
-                            cachedRecipes[categoryId]?.add(newRecipe)
+                            // Create the updated recipe with the new photo
+                            val updatedRecipe = recipe.copy(id = newRecipeId, imageBitmap = photo)
+                            cachedRecipes[categoryId]?.add(updatedRecipe)
+
+                            callback(true)
+                        } else {
+                            callback(false)
                         }
-                        callback(isSuccess)
                     }
                 } else {
-                    cachedRecipes[categoryId]?.add(recipe.copy(id = newRecipeId))
+                    val updatedRecipe = recipe.copy(id = newRecipeId)
+                    cachedRecipes[categoryId]?.add(updatedRecipe)
                     callback(true)
                 }
+
             }
             .addOnFailureListener { e ->
                 Log.e("RecipesRepository", "Error adding new recipe to Firestore: ${e.message}", e)
@@ -194,6 +200,46 @@ object RecipesRepository {
             }
     }
 
+    fun updateRecipeInstructions(
+        context: Context,
+        categoryId: String,
+        recipeId: String,
+        updatedInstructions: String,
+        callback: (Boolean) -> Unit
+    ) {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (userId == null) {
+            Log.e("RecipesRepository", "User not authenticated.")
+            callback(false)
+            return
+        }
+
+        val recipeRef = firestore.collection("users").document(userId)
+            .collection("categories").document(categoryId)
+            .collection("recipes").document(recipeId)
+
+        // Update the instructions field in Firestore
+        recipeRef.update("instructions", updatedInstructions)
+            .addOnSuccessListener {
+                Log.d("RecipesRepository", "Instructions updated successfully in Firestore.")
+
+                // Update the cached version of the recipe
+                cachedRecipes[categoryId]?.find { it.id == recipeId }?.let { recipe ->
+                    val updatedRecipe = recipe.copy(instructions = updatedInstructions)
+
+                    // Update the recipe in the cache
+                    cachedRecipes[categoryId] = cachedRecipes[categoryId]?.map {
+                        if (it.id == recipeId) updatedRecipe else it
+                    }?.toMutableList() ?: mutableListOf()
+                }
+
+                callback(true)
+            }
+            .addOnFailureListener { e ->
+                Log.e("RecipesRepository", "Error updating instructions: ${e.message}", e)
+                callback(false)
+            }
+    }
 
 
 

@@ -1,10 +1,10 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    id("org.jetbrains.kotlin.kapt") // Apply kapt plugin
+    id("org.jetbrains.kotlin.kapt") // Keep this for annotation processors like Glide
+    id("org.jetbrains.kotlin.plugin.parcelize") // Add this for parcelize support
     id("com.google.gms.google-services")
 }
-
 android {
     namespace = "com.example.mealmate"
     compileSdk = 34

@@ -169,7 +169,6 @@ class SavedRecipesFragment : Fragment() {
             Log.d("SavedCategoriesFragment", "No categories found.")
             Toast.makeText(requireContext(), "No categories available", Toast.LENGTH_SHORT).show()
         }
-//        addNewRecipeCard()
     }
 
     private fun addRecipeCard(recipe: Recipe) {
@@ -249,9 +248,24 @@ class SavedRecipesFragment : Fragment() {
     }
 
     private fun refreshRecipiesDisplay() {
-        cardContainer.removeAllViews()
-        setupRecipies()
+        // Use a temporary list to avoid modifying the collection while iterating
+        val viewsToRemove = mutableListOf<View>()
+
+        // Iterate through child views of cardContainer
+        for (i in 0 until cardContainer.childCount) {
+            val view = cardContainer.getChildAt(i)
+            if (view.id != R.id.new_recipe_card) {
+                viewsToRemove.add(view)
+            }
+        }
+
+        // Remove views after iteration
+        viewsToRemove.forEach { cardContainer.removeView(it) }
+
+        // Reload the recipes
+        loadRecipes(categoryId)
     }
+
 
     private fun saveRecipeToRepository(recipeName: String, categoryId: String) {
         selectedPhotoBitmap?.let { bitmap ->
