@@ -83,33 +83,84 @@ class RecipeFragment : Fragment() {
         val saveEditButton: ImageView = view.findViewById(R.id.save_edit_recipe_button)
         val ingredientAddNewRow: View = view.findViewById(R.id.addNewIngredientRow)
 
-        val editInstructinsButton: ImageView = view.findViewById(R.id.icon_edit_instructions)
+        val editInstructionsButton: ImageView = view.findViewById(R.id.icon_edit_instructions)
 
         saveEditButton.visibility = View.GONE
         ingredientAddNewRow.visibility = View.GONE
-        editInstructinsButton.visibility = View.GONE
+        editInstructionsButton.visibility = View.GONE
 
         // Edit button click listener
         editButton.setOnClickListener {
             editButton.visibility = View.GONE
             saveEditButton.visibility = View.VISIBLE
             ingredientAddNewRow.visibility = View.VISIBLE
-            editInstructinsButton.visibility = View.VISIBLE
+            editInstructionsButton.visibility = View.VISIBLE
         }
 
         // Save button click listener
         saveEditButton.setOnClickListener {
             saveEditButton.visibility = View.GONE
             ingredientAddNewRow.visibility = View.GONE
-            editInstructinsButton.visibility = View.GONE
+            editInstructionsButton.visibility = View.GONE
             editButton.visibility = View.VISIBLE
+            saveInstructions()
         }
 
         // Ingredient add new row click listener
         ingredientAddNewRow.setOnClickListener {
             showAddIngredientDialog()
         }
+
+        // Enable editing instructions on clicking the edit icon
+        editInstructionsButton.setOnClickListener {
+            val instructionsSection = view.findViewById<LinearLayout>(R.id.instructions_section)
+            for (i in 0 until instructionsSection.childCount) {
+                val child = instructionsSection.getChildAt(i)
+                if (child is EditText) {
+                    child.isFocusableInTouchMode = true
+                    child.isCursorVisible = true
+                    child.isEnabled = true
+                    child.requestFocus()
+                }
+            }
+        }
     }
+
+    private fun saveInstructions() {
+        val instructionsSection = view?.findViewById<LinearLayout>(R.id.instructions_section)
+        val updatedInstructions = mutableListOf<String>()
+
+        instructionsSection?.let {
+            for (i in 0 until it.childCount) {
+                val child = it.getChildAt(i)
+                if (child is EditText) {
+                    updatedInstructions.add(child.text.toString())
+                    // Disable editing after saving
+                    child.isFocusable = false
+                    child.isFocusableInTouchMode = false
+                    child.isCursorVisible = false
+                    child.isEnabled = false
+                }
+            }
+        }
+
+        // Update the instructions variable with the new instructions
+        instructions = updatedInstructions.joinToString("\n")
+
+        // Optionally, update the repository if needed
+        val categoryId = arguments?.getString("categoryID")
+        val recipeId = arguments?.getString("recipeID")
+        if (categoryId != null && recipeId != null) {
+            RecipesRepository.updateRecipeInstructions(requireContext(), categoryId, recipeId, instructions) { success ->
+                if (success) {
+                    Toast.makeText(requireContext(), "Instructions updated successfully!", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(requireContext(), "Failed to update instructions", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
 
     private fun showAddIngredientDialog() {
         val dialog = Dialog(requireContext())
@@ -274,6 +325,7 @@ class RecipeFragment : Fragment() {
             isFocusableInTouchMode = false
             isCursorVisible = false
             isEnabled = false
+            background = null
         }
 
         // Add linstructionEditText to instructionsSection
