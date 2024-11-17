@@ -11,6 +11,8 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
@@ -35,6 +37,8 @@ object RecipesRepository {
             return
         }
 
+        val startTime = System.currentTimeMillis()
+
         // Clear existing recipes for this category
         cachedRecipes[categoryId] = mutableListOf()
 
@@ -48,7 +52,13 @@ object RecipesRepository {
                     recipesList.add(recipe)
                 }
                 cachedRecipes[categoryId] = recipesList
+                val fetchTime = System.currentTimeMillis() - startTime
+                Log.d("RecipesRepository", "Time taken to fetch recipes from Firestore: ${fetchTime}ms")
+
                 loadRecipePhotos(context, userId, categoryId, recipesList) { success ->
+                    val totalTime = System.currentTimeMillis() - startTime
+                    Log.d("RecipesRepository", "Total time taken to load recipes and photos: ${totalTime}ms")
+
                     isDataLoaded = success
                     callback(success)
                 }
@@ -59,16 +69,34 @@ object RecipesRepository {
             }
     }
 
-    private fun loadRecipePhotos(context: Context, userId: String, categoryId: String, recipesList: List<Recipe>, callback: (Boolean) -> Unit) {
+    private fun loadRecipePhotos(
+        context: Context,
+        userId: String,
+        categoryId: String,
+        recipesList: List<Recipe>,
+        callback: (Boolean) -> Unit
+    ) {
         val driveHelper = GoogleDriveHelper(context)
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                recipesList.forEach { recipe ->
-                    val recipeFolderId = driveHelper.getOrCreateRecipeFolder(userId, categoryId, recipe.id)
-                    val bitmap = driveHelper.getRecipePhoto(recipeFolderId)
-                    // Assuming `Recipe` has a property to hold the photo, if not add one like `var photo: Bitmap? = null`
-                    recipe.imageBitmap = bitmap
+                // Use `map` with `async` to fetch recipe photos in parallel
+                val deferredResults = recipesList.map { recipe ->
+                    async {
+                        Log.d("RecipesRepository", "Fetching photo for recipe ${recipe.id} on thread: ${Thread.currentThread().name}")
+                        try {
+                            val recipeFolderId = driveHelper.getOrCreateRecipeFolder(userId, categoryId, recipe.id)
+                            val bitmap = driveHelper.getRecipePhoto(recipeFolderId)
+                            recipe.imageBitmap = bitmap
+                        } catch (e: Exception) {
+                            Log.e("RecipesRepository", "Error fetching photo for recipe ${recipe.id}: ${e.message}", e)
+                        }
+                    }
                 }
+
+                // Await all parallel tasks
+                deferredResults.awaitAll()
+
+                // Switch to the main thread and invoke the callback
                 withContext(Dispatchers.Main) {
                     callback(true)
                 }
@@ -80,6 +108,7 @@ object RecipesRepository {
             }
         }
     }
+
 
     fun addNewRecipe(context: Context, categoryId: String, recipe: Recipe, photo: Bitmap?, callback: (Boolean) -> Unit) {
         val userId = FirebaseAuth.getInstance().currentUser?.uid

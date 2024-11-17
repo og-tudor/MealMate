@@ -9,6 +9,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
@@ -59,15 +61,32 @@ object CategoriesRepository {
     }
 
     // Load photos for each category from Google Drive
-    private fun loadCategoryPhotos(context: Context, userId: String, categoriesList: List<Category2>, callback: (Boolean) -> Unit) {
+    private fun loadCategoryPhotos(
+        context: Context,
+        userId: String,
+        categoriesList: List<Category2>,
+        callback: (Boolean) -> Unit
+    ) {
         val driveHelper = GoogleDriveHelper(context)
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                categoriesList.forEach { category ->
-                    val categoryFolderId = driveHelper.getOrCreateCategoryFolder(userId, category.id)
-                    val bitmap = driveHelper.getCategoryPhoto(categoryFolderId)
-                    category.photo = bitmap
+                // Use `async` to fetch category photos in parallel
+                val deferredResults = categoriesList.map { category ->
+                    async {
+                        try {
+                            val categoryFolderId = driveHelper.getOrCreateCategoryFolder(userId, category.id)
+                            val bitmap = driveHelper.getCategoryPhoto(categoryFolderId)
+                            category.photo = bitmap
+                        } catch (e: Exception) {
+                            Log.e("CategoriesRepository", "Error fetching photo for category ${category.id}: ${e.message}", e)
+                        }
+                    }
                 }
+
+                // Wait for all parallel tasks to complete
+                deferredResults.awaitAll()
+
+                // Switch to the main thread and invoke the callback
                 withContext(Dispatchers.Main) {
                     callback(true)
                 }
@@ -79,6 +98,7 @@ object CategoriesRepository {
             }
         }
     }
+
 
     // Function to add a new category
     fun addNewCategory(context: Context, newCategoryName: String, photo: Bitmap?, callback: (Boolean) -> Unit) {
