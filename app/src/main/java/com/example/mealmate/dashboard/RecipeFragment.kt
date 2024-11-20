@@ -18,6 +18,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.graphics.toColorInt
 import androidx.fragment.app.Fragment
 import com.bumptech.glide.Glide
 import com.example.mealmate.R
@@ -321,6 +322,7 @@ class RecipeFragment : Fragment() {
         linstructionEditText = EditText(requireContext()).apply {
             setText(instructions)
             setPadding(16, 16, 16, 16)
+            setTextColor("#3F3A38".toColorInt())
             isFocusable = false
             isFocusableInTouchMode = false
             isCursorVisible = false
