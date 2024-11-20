@@ -117,30 +117,34 @@ class SettingsFragment : Fragment() {
         if (requestCode == PICK_IMAGE_REQUEST && resultCode == Activity.RESULT_OK && data != null && data.data != null) {
             val selectedImageUri: Uri = data.data!!
             try {
+                // Decode the image as a Bitmap
                 val inputStream: InputStream? = requireContext().contentResolver.openInputStream(selectedImageUri)
                 val bitmap = BitmapFactory.decodeStream(inputStream)
 
-                // Save the selected image to cache
+                // Save the selected image to a cache file
                 val cacheFile = File(requireContext().cacheDir, "selected_profile_picture.png")
                 FileOutputStream(cacheFile).use { outputStream ->
                     bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
                 }
 
-                // Upload the selected image to Google Drive
+                // Set the selected image on the ImageView
+                profilePicture.setImageBitmap(bitmap)
+
+                // Optionally upload the image to Google Drive
                 val googleDriveHelper = GoogleDriveHelper(requireContext())
                 CoroutineScope(Dispatchers.IO).launch {
                     googleDriveHelper.uploadUserProfilePicture(cacheFile)
                     googleDriveHelper.cacheProfilePicture(bitmap, FirebaseAuth.getInstance().currentUser!!.uid)
 
-                    // Reload the fragment on the main thread
+                    // Update UI on the main thread
                     CoroutineScope(Dispatchers.Main).launch {
                         loadProfilePicture(FirebaseAuth.getInstance().currentUser!!.uid)
                     }
                 }
-
             } catch (e: Exception) {
                 Log.e("SettingsFragment", "Error handling selected image: ${e.message}", e)
             }
         }
     }
+
 }
