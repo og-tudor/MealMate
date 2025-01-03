@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
+import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.example.mealmate.dashboard.GeneralFunctions
@@ -34,6 +35,7 @@ class RegisterFragment : Fragment() {
         val passwordField = view.findViewById<EditText>(R.id.password)
         val passwordConfirmationField = view.findViewById<EditText>(R.id.password_confirmation)
         val registerButton = view.findViewById<MaterialButton>(R.id.registerButton)
+        val loginLink = view.findViewById<TextView>(R.id.login_link)
 
         // Set up the register button
         registerButton.setOnClickListener {
@@ -69,6 +71,11 @@ class RegisterFragment : Fragment() {
                         ).show()
                     }
                 }
+        }
+
+        // Set up the login link
+        loginLink.setOnClickListener {
+            generalFunctions.navigateToFragment(LoginFragment())
         }
 
         return view
