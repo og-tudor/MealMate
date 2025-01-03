@@ -99,6 +99,53 @@ object CategoriesRepository {
         }
     }
 
+    // Function to delete a category
+    fun deleteCategory(context: Context, categoryId: String, callback: (Boolean) -> Unit) {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (userId == null) {
+            Log.e("CategoriesRepository", "User not authenticated.")
+            callback(false)
+            return
+        }
+
+        val driveHelper = GoogleDriveHelper(context)
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                // Step 1: Delete the photo from Google Drive
+                val categoryFolderId = driveHelper.getOrCreateCategoryFolder(userId, categoryId)
+                val photoDeleted = driveHelper.deleteCategoryPhoto(categoryFolderId)
+
+                if (!photoDeleted) {
+                    Log.e("CategoriesRepository", "Error deleting photo for category $categoryId")
+                }
+
+                // Step 2: Delete the Firestore entry
+                firestore.collection("users")
+                    .document(userId)
+                    .collection("categories")
+                    .document(categoryId)
+                    .delete()
+                    .addOnSuccessListener {
+                        // Remove the category from the cache
+                        cachedCategories.removeIf { it.id == categoryId }
+                        Log.d("CategoriesRepository", "Category $categoryId deleted successfully.")
+                        callback(true)
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("CategoriesRepository", "Error deleting category from Firestore: ${e.message}", e)
+                        callback(false)
+                    }
+            } catch (e: Exception) {
+                Log.e("CategoriesRepository", "Error deleting category $categoryId: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    callback(false)
+                }
+            }
+        }
+    }
+
+
 
     // Function to add a new category
     fun addNewCategory(context: Context, newCategoryName: String, photo: Bitmap?, callback: (Boolean) -> Unit) {

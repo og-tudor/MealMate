@@ -390,8 +390,18 @@ class GoogleDriveHelper(private val context: Context) {
         }
     }
 
-
-
+    fun deleteCategoryPhoto(folderId: String): Boolean {
+        return try {
+            val driveService = getDriveService() // Ensure the Drive service is initialized
+            // Delete the entire folder and its contents
+            driveService.files().delete(folderId).execute()
+            Log.d("GoogleDriveHelper", "Category folder and its contents deleted successfully for folder: $folderId")
+            true
+        } catch (e: Exception) {
+            Log.e("GoogleDriveHelper", "Error deleting category folder: $folderId. ${e.message}", e)
+            false
+        }
+    }
 
 
 }

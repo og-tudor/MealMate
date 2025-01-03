@@ -133,8 +133,51 @@ class SavedCategoriesFragment : Fragment() {
             generalFunctions.navigateToFragment(SavedRecipesFragment(), args = bundle)
         }
 
+        // Long press listener to show the popup menu
+        categoryCard.setOnLongClickListener {
+            // Inflate the popup view
+            val popupView = inflater.inflate(R.layout.popup_window_categories, null)
+
+            // Create a PopupWindow
+            val popupWindow = PopupWindow(
+                popupView,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                true
+            )
+
+            // Set up the Edit Button
+            val editButton = popupView.findViewById<LinearLayout>(R.id.edit_button)
+            editButton.setOnClickListener {
+                // Handle the Edit action
+
+                popupWindow.dismiss()
+            }
+
+            // Set up the Delete Button
+            val deleteButton = popupView.findViewById<LinearLayout>(R.id.delete_button)
+            deleteButton.setOnClickListener {
+                context?.let { it1 ->
+                    CategoriesRepository.deleteCategory(it1, category.id) { success ->
+                        if (success) {
+                            Log.d("SettingsFragment", "Category deleted successfully.")
+                        } else {
+                            Log.e("SettingsFragment", "Failed to delete category.")
+                        }
+                    }
+                }
+                popupWindow.dismiss()
+            }
+
+
+            // Show the PopupWindow below the card
+            popupWindow.showAsDropDown(categoryCard)
+            true // Indicate that the long press was handled
+        }
+
         cardContainer.addView(categoryCard)
     }
+
 
     private fun addNewCategoryCard() {
         val inflater = LayoutInflater.from(requireContext())
