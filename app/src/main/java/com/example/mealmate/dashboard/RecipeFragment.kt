@@ -85,6 +85,7 @@ class RecipeFragment : Fragment() {
         val ingredientAddNewRow: View = view.findViewById(R.id.addNewIngredientRow)
 
         val editInstructionsButton: ImageView = view.findViewById(R.id.icon_edit_instructions)
+        val ingredientsSection = view.findViewById<LinearLayout>(R.id.ingredient_section)
 
         saveEditButton.visibility = View.GONE
         ingredientAddNewRow.visibility = View.GONE
@@ -96,6 +97,18 @@ class RecipeFragment : Fragment() {
             saveEditButton.visibility = View.VISIBLE
             ingredientAddNewRow.visibility = View.VISIBLE
             editInstructionsButton.visibility = View.VISIBLE
+            // Enable editing ingredients
+            // Enable editing for ingredients
+            for (i in 0 until ingredientsSection.childCount) {
+                val child = ingredientsSection.getChildAt(i)
+                val nameEditText = child.findViewById<EditText>(R.id.ingredient_name)
+                val quantityEditText = child.findViewById<EditText>(R.id.ingredient_quantity)
+
+                if (nameEditText != null && quantityEditText != null) {
+                    enableEditing(nameEditText)
+                    enableEditing(quantityEditText)
+                }
+            }
         }
 
         // Save button click listener
@@ -104,6 +117,23 @@ class RecipeFragment : Fragment() {
             ingredientAddNewRow.visibility = View.GONE
             editInstructionsButton.visibility = View.GONE
             editButton.visibility = View.VISIBLE
+
+            // Save edited ingredients
+            saveEditedIngredients(ingredientsSection)
+
+            // Disable editing ingredients after saving
+            for (i in 0 until ingredientsSection.childCount) {
+                val child = ingredientsSection.getChildAt(i)
+                val nameEditText = child.findViewById<EditText>(R.id.ingredient_name)
+                val quantityEditText = child.findViewById<EditText>(R.id.ingredient_quantity)
+
+                if (nameEditText != null && quantityEditText != null) {
+                    disableEditing(nameEditText)
+                    disableEditing(quantityEditText)
+                }
+            }
+
+
             saveInstructions()
         }
 
@@ -126,6 +156,37 @@ class RecipeFragment : Fragment() {
             }
         }
     }
+
+    private fun saveEditedIngredients(ingredientsSection: LinearLayout) {
+        val updatedIngredients = mutableListOf<Ingredient>()
+
+        for (i in 0 until ingredientsSection.childCount) {
+            val child = ingredientsSection.getChildAt(i)
+            val nameEditText = child.findViewById<EditText>(R.id.ingredient_name)
+            val quantityEditText = child.findViewById<EditText>(R.id.ingredient_quantity)
+
+            if (nameEditText != null && quantityEditText != null) {
+                val name = nameEditText.text.toString().trim()
+                val quantity = quantityEditText.text.toString().trim()
+                if (name.isNotEmpty() && quantity.isNotEmpty()) {
+                    updatedIngredients.add(Ingredient(name, quantity))
+                }
+            }
+        }
+
+        // Update the recipe in the database
+        val categoryId = arguments?.getString("categoryID") ?: return
+        val recipeId = arguments?.getString("recipeID") ?: return
+
+        RecipesRepository.updateRecipeIngredients(requireContext(), categoryId, recipeId, updatedIngredients) { success ->
+            if (success) {
+                Toast.makeText(requireContext(), "Ingredients updated successfully!", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(requireContext(), "Failed to update ingredients", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
 
     private fun saveInstructions() {
         val instructionsSection = view?.findViewById<LinearLayout>(R.id.instructions_section)
@@ -444,6 +505,20 @@ class RecipeFragment : Fragment() {
             fragment.arguments = args
             return fragment
         }
+    }
+
+    private fun enableEditing(editText: EditText) {
+        editText.isFocusable = true
+        editText.isFocusableInTouchMode = true
+        editText.isCursorVisible = true
+        editText.isEnabled = true
+    }
+
+    private fun disableEditing(editText: EditText) {
+        editText.isFocusable = false
+        editText.isFocusableInTouchMode = false
+        editText.isCursorVisible = false
+        editText.isEnabled = false
     }
 
 }

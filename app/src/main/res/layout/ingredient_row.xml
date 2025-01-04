@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -7,33 +6,41 @@
     android:layout_marginBottom="4dp"
     android:padding="0dp">
 
-    <!-- Bullet Point as a Shape -->
+    <!-- Bullet Point -->
     <View
-    android:layout_width="12dp"
-    android:layout_height="12dp"
-    android:background="@drawable/bullet_shape"
-    android:layout_marginEnd="8dp"
+        android:layout_width="12dp"
+        android:layout_height="12dp"
+        android:background="@drawable/bullet_shape"
+        android:layout_marginEnd="8dp"
         android:layout_marginBottom="2dp"/>
 
-    <!-- Ingredient Name -->
-    <TextView
+    <!-- Ingredient Name (EditText instead of TextView) -->
+    <EditText
         android:id="@+id/ingredient_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:text="Ingredient"
+        android:hint="Ingredient"
         android:textColor="#000000"
         android:textSize="16sp"
         android:textStyle="bold"
-        android:fontFamily="@font/lalezar" />
+        android:fontFamily="@font/lalezar"
+        android:background="@android:color/transparent"
+        android:focusable="false"
+        android:cursorVisible="false"
+        android:enabled="false"/>
 
-    <!-- Quantity -->
-    <TextView
+    <!-- Ingredient Quantity (EditText instead of TextView) -->
+    <EditText
         android:id="@+id/ingredient_quantity"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Quantity"
+        android:hint="Quantity"
         android:textColor="#000000"
         android:textSize="16sp"
-        android:fontFamily="@font/lalezar" />
+        android:fontFamily="@font/lalezar"
+        android:background="@android:color/transparent"
+        android:focusable="false"
+        android:cursorVisible="false"
+        android:enabled="false"/>
 </LinearLayout>

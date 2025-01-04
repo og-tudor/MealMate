@@ -270,6 +270,47 @@ object RecipesRepository {
             }
     }
 
+    fun updateRecipeIngredients(
+        context: Context,
+        categoryId: String,
+        recipeId: String,
+        updatedIngredients: List<Ingredient>,
+        callback: (Boolean) -> Unit
+    ) {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (userId == null) {
+            Log.e("RecipesRepository", "User not authenticated.")
+            callback(false)
+            return
+        }
+
+        val recipeRef = firestore.collection("users").document(userId)
+            .collection("categories").document(categoryId)
+            .collection("recipes").document(recipeId)
+
+        // Update the ingredientsWithQuantities field in Firestore
+        recipeRef.update("ingredientsWithQuantities", updatedIngredients)
+            .addOnSuccessListener {
+                Log.d("RecipesRepository", "Ingredients updated successfully in Firestore.")
+
+                // Update the cached version of the recipe
+                cachedRecipes[categoryId]?.find { it.id == recipeId }?.let { recipe ->
+                    val updatedRecipe = recipe.copy(ingredientsWithQuantities = updatedIngredients)
+
+                    // Update the recipe in the cache
+                    cachedRecipes[categoryId] = cachedRecipes[categoryId]?.map {
+                        if (it.id == recipeId) updatedRecipe else it
+                    }?.toMutableList() ?: mutableListOf()
+                }
+
+                callback(true)
+            }
+            .addOnFailureListener { e ->
+                Log.e("RecipesRepository", "Error updating ingredients: ${e.message}", e)
+                callback(false)
+            }
+    }
+
 
 
 }
