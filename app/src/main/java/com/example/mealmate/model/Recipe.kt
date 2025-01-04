@@ -9,5 +9,6 @@ data class Recipe(
     val imageUrl: String = "",
     val instructions: String = "",
     val ingredientsWithQuantities: List<Ingredient> = emptyList(),
-    var imageBitmap: Bitmap? = null // Optional image bitmap loaded from Google Drive
+    var imageBitmap: Bitmap? = null,
+    val recipeCategory: String = "",
 )

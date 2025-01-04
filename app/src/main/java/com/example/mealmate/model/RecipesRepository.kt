@@ -122,7 +122,8 @@ object RecipesRepository {
         val recipeData = hashMapOf(
             "title" to recipe.title,
             "instructions" to recipe.instructions,
-            "ingredientsWithQuantities" to recipe.ingredientsWithQuantities
+            "ingredientsWithQuantities" to recipe.ingredientsWithQuantities,
+            "recipeCategory" to recipe.recipeCategory
         )
 
         firestore.collection("users").document(userId).collection("categories").document(categoryId)

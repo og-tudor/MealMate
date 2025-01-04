@@ -106,13 +106,6 @@ class SavedRecipesFragment : Fragment() {
         return view
     }
 
-//    private fun addNewRecipeCard() {
-//        val newRecipeCard = view?.findViewById<View>(R.id.new_recipe_card)
-//        newRecipeCard?.setOnClickListener { showAddRecipeDialog(categoryId) }
-//
-//        cardContainer.addView(newRecipeCard)
-//    }
-
     private fun loadRecipes(categoryId: String) {
         RecipesRepository.loadRecipes(requireContext(), categoryId) { success ->
             if (success) {
@@ -147,7 +140,8 @@ class SavedRecipesFragment : Fragment() {
                 instructions = recipe.instructions,
                 source = FragmentSource.SAVED_RECIPIES_LIBRARY,
                 categoryID = categoryId,
-                recipeID = recipe.id
+                recipeID = recipe.id,
+                recipeCategory = recipe.recipeCategory
             )
 
 // Use GeneralFunctions to handle the navigation

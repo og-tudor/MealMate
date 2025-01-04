@@ -84,6 +84,7 @@
 
                             <!-- Horizontal LinearLayout for Tags -->
                             <LinearLayout
+                                android:id="@+id/category_badges"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_gravity="bottom|end"

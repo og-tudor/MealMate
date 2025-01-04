@@ -42,6 +42,7 @@ class RecipeFragment : Fragment() {
     private var imageUri: Uri? = null
     private var ingredients: Array<Ingredient> = emptyArray()
     private lateinit var instructions: String
+    private lateinit var recipeCategory: String
     private var imageBitmap: Bitmap? = null
     private lateinit var linstructionEditText: EditText
 
@@ -73,6 +74,7 @@ class RecipeFragment : Fragment() {
         imageUri = arguments?.getString("imageUri")?.let { Uri.parse(it) }
         ingredients = arguments?.getParcelableArray("ingredients")?.filterIsInstance<Ingredient>()?.toTypedArray() ?: emptyArray()
         instructions = arguments?.getString("instructions") ?: "No instructions available"
+        recipeCategory = arguments?.getString("recipeCategory") ?: "No category"
 
         displayRecipeDetails(view, inflater)
 
@@ -338,6 +340,8 @@ class RecipeFragment : Fragment() {
         val ingredientsSection = view.findViewById<LinearLayout>(R.id.ingredient_section)
         val instructionsSection = view.findViewById<LinearLayout>(R.id.instructions_section)
 
+        val categoryTagsContainer = view.findViewById<LinearLayout>(R.id.category_badges)
+
         recipeNameTextView.text = recipeName
 
         // Load image based on source
@@ -394,6 +398,35 @@ class RecipeFragment : Fragment() {
         // Add linstructionEditText to instructionsSection
         instructionsSection.removeAllViews()
         instructionsSection.addView(linstructionEditText)
+
+
+        // Set up category tags
+        categoryTagsContainer.removeAllViews() // Clear existing tags
+
+        val categoryTag = TextView(requireContext()).apply {
+            text = recipeCategory
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                marginEnd = 8
+            }
+            setBackgroundResource(R.drawable.recipe_tag_background)
+            setPadding(15, 15, 15, 15)
+            setTextColor(resources.getColor(R.color.white, null))
+            textSize = 17f
+        }
+        val params = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply {
+            marginEnd = 8
+        }
+        categoryTag.layoutParams = params
+        // if the text is "" then don't add it to the view
+        if (categoryTag.text.isNotEmpty())
+            categoryTagsContainer.addView(categoryTag)
+
     }
 
 
@@ -448,9 +481,10 @@ class RecipeFragment : Fragment() {
     private fun saveRecipeToFirestore(categoryId: String) {
         val recipe = Recipe(
             title = recipeName,
-            imageUrl = imageUri?.toString() ?: "", // Provide a default empty string if null
+            imageUrl = imageUri?.toString() ?: "",
             instructions = instructions,
-            ingredientsWithQuantities = ingredients.map { Ingredient(it.name, it.quantity) }
+            ingredientsWithQuantities = ingredients.map { Ingredient(it.name, it.quantity) },
+            recipeCategory = recipeCategory
         )
 
 
@@ -489,7 +523,8 @@ class RecipeFragment : Fragment() {
             instructions: String?,
             source: FragmentSource,
             categoryID: String?,
-            recipeID: String?
+            recipeID: String?,
+            recipeCategory: String?
         ): RecipeFragment {
             val fragment = RecipeFragment()
             val args = Bundle().apply {
@@ -501,6 +536,7 @@ class RecipeFragment : Fragment() {
                 putString("SOURCE", source.name)
                 putString("categoryID", categoryID)
                 putString("recipeID", recipeID)
+                putString("recipeCategory", recipeCategory)
             }
             fragment.arguments = args
             return fragment

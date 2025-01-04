@@ -131,12 +131,16 @@ class ExploreFragment : Fragment() {
                                 (quantity, name) -> Ingredient(name = name, quantity = quantity)
                         }
 
+                        // get category
+                        val recipeCategory = meal.strCategory
+
                         val recipe = Recipe(
                             id = meal.idMeal,
                             title = meal.strMeal,
                             imageUrl = meal.strMealThumb,
                             instructions = meal.strInstructions,
-                            ingredientsWithQuantities = ingredientsWithQuantities
+                            ingredientsWithQuantities = ingredientsWithQuantities,
+                            recipeCategory = recipeCategory?:""
                         )
 
                         addCardToContainer(recipe)
@@ -168,12 +172,17 @@ class ExploreFragment : Fragment() {
                         Ingredient(name = ingredient, quantity = convertMeasureToGrams(measure))
                     }
 
+                    // get category
+                    val recipeCategory = meal.strCategory
+
+
                     val recipe = Recipe(
                         id = meal.idMeal,
                         title = meal.strMeal,
                         imageUrl = meal.strMealThumb,
                         instructions = meal.strInstructions,
-                        ingredientsWithQuantities = convertedIngredientsWithMeasures
+                        ingredientsWithQuantities = convertedIngredientsWithMeasures,
+                        recipeCategory = recipeCategory?:""
                     )
 
 
@@ -230,7 +239,8 @@ class ExploreFragment : Fragment() {
                 instructions = recipe.instructions.ifEmpty { "No instructions available" },
                 source = FragmentSource.EXPLORE_PAGE,
                 categoryID = null,
-                recipeID = null
+                recipeID = null,
+                recipeCategory = recipe.recipeCategory
             )
 
             // Use GeneralFunctions to handle the navigation
