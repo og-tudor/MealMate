@@ -18,7 +18,7 @@ import java.io.ByteArrayOutputStream
 object CategoriesRepository {
     val cachedCategories = mutableListOf<Category2>()
     private val firestore = FirebaseFirestore.getInstance()
-    private var isDataLoaded = false
+    var isDataLoaded = false
 
     // Load categories from Firestore and Google Drive
     fun loadCategories(context: Context, callback: (Boolean) -> Unit) {
@@ -97,6 +97,11 @@ object CategoriesRepository {
                 }
             }
         }
+    }
+
+    fun clearCachedCategories() {
+        cachedCategories.clear()
+        Log.d("CategoriesRepository", "Cached categories cleared.")
     }
 
     // Function to delete a category

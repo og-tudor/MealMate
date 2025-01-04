@@ -11,24 +11,29 @@ import android.widget.Button
 import android.widget.EditText
 import com.google.android.material.snackbar.Snackbar
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
-import androidx.lifecycle.Observer
-import androidx.lifecycle.lifecycleScope
 import com.example.mealmate.dashboard.DashboardActivity
 import com.example.mealmate.dashboard.GeneralFunctions
 import com.example.mealmate.repository.CategoriesRepository
 import com.example.mealmate.utils.AnimationHandler
 import com.example.mealmate.utils.GoogleDriveHelper
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class LoginFragment : Fragment() {
     private lateinit var auth: FirebaseAuth
     private lateinit var generalFunctions: GeneralFunctions
     private lateinit var animationHandler: AnimationHandler
+    private lateinit var googleSignInClient: GoogleSignInClient
+
+    private val RC_SIGN_IN = 9001
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -47,7 +52,61 @@ class LoginFragment : Fragment() {
 
         val lottieAnimationView = view.findViewById<com.airbnb.lottie.LottieAnimationView>(R.id.lottie_animation_view)
         animationHandler = AnimationHandler(lottieAnimationView)
+
+        // Configure Google Sign-In
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(getString(R.string.default_web_client_id))
+            .requestEmail()
+            .build()
+        googleSignInClient = GoogleSignIn.getClient(requireActivity(), gso)
+
+        setupGoogleSignInButton(view)
     }
+
+    private fun setupGoogleSignInButton(view: View) {
+        val googleSignInButton = view.findViewById<View>(R.id.google_icon)
+        googleSignInButton.setOnClickListener {
+            val signInIntent = googleSignInClient.signInIntent
+            startActivityForResult(signInIntent, RC_SIGN_IN)
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == RC_SIGN_IN) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+            handleSignInResult(task)
+        }
+    }
+
+    private fun handleSignInResult(completedTask: com.google.android.gms.tasks.Task<GoogleSignInAccount>) {
+        try {
+            animationHandler.showAnimation(Color.parseColor("#E8602E")) // Show loading animation
+            val account = completedTask.getResult(ApiException::class.java)!!
+            Log.d("LoginFragment", "firebaseAuthWithGoogle: ${account.id}")
+            firebaseAuthWithGoogle(account.idToken!!)
+        } catch (e: ApiException) {
+            animationHandler.hideAnimation() // Hide animation on failure
+            Log.w("LoginFragment", "Google sign-in failed", e)
+            Snackbar.make(requireView(), "Google Sign-In failed: ${e.message}", Snackbar.LENGTH_LONG).show()
+        }
+    }
+
+    private fun firebaseAuthWithGoogle(idToken: String) {
+        val credential = GoogleAuthProvider.getCredential(idToken, null)
+        auth.signInWithCredential(credential)
+            .addOnCompleteListener(requireActivity()) { task ->
+                if (task.isSuccessful) {
+                    Log.d("LoginFragment", "signInWithCredential:success")
+                    handleSuccessfulLogin(requireView())
+                } else {
+                    animationHandler.hideAnimation() // Hide animation on failure
+                    Log.w("LoginFragment", "signInWithCredential:failure", task.exception)
+                    Snackbar.make(requireView(), "Authentication Failed.", Snackbar.LENGTH_SHORT).show()
+                }
+            }
+    }
+
 
     private fun setupLoginButton(view: View) {
         val emailField = view.findViewById<EditText>(R.id.email)
@@ -73,19 +132,26 @@ class LoginFragment : Fragment() {
             .addOnCompleteListener(requireActivity()) { task ->
                 if (task.isSuccessful) {
                     Log.d("LoginFragment", "signInWithEmail:success")
-                    verifyUserFolder { success ->
-                        if (success) {
-                            loadCategoriesAndNavigate(view)
-                        } else {
-                            showErrorSnackbar(view, "Error setting up user folder. Please try again.")
-                            animationHandler.hideAnimation()
-                        }
-                    }
+                    handleSuccessfulLogin(view)
                 } else {
                     handleLoginFailure(task.exception, view)
                 }
             }
     }
+
+    private fun handleSuccessfulLogin(view: View) {
+        verifyUserFolder { success ->
+            if (success) {
+                CategoriesRepository.clearCachedCategories() // Clear any leftover cache
+                CategoriesRepository.isDataLoaded = false // Reset the flag
+                loadCategoriesAndNavigate(view) // Load new categories and navigate
+            } else {
+                showErrorSnackbar(view, "Error setting up user folder. Please try again.")
+                animationHandler.hideAnimation()
+            }
+        }
+    }
+
 
     private fun loadCategoriesAndNavigate(view: View) {
         CategoriesRepository.loadCategories(requireContext()) { success ->
@@ -94,14 +160,13 @@ class LoginFragment : Fragment() {
                 animationHandler.hideAnimation()
                 val intent = Intent(requireContext(), DashboardActivity::class.java)
                 startActivity(intent)
-                activity?.finish() // Ensure we don't return to login on back
+                activity?.finish()
             } else {
                 showErrorSnackbar(view, "Failed to load categories. Please try again.")
                 animationHandler.hideAnimation()
             }
         }
     }
-
 
     private fun handleLoginFailure(exception: Exception?, view: View) {
         animationHandler.hideAnimation()

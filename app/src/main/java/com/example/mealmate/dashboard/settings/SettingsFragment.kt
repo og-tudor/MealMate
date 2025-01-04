@@ -1,3 +1,5 @@
+package com.example.mealmate
+
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
@@ -17,7 +19,11 @@ import androidx.fragment.app.Fragment
 import com.example.mealmate.R
 import com.example.mealmate.dashboard.GeneralFunctions
 import com.example.mealmate.login.LoginPage
+import com.example.mealmate.repository.CategoriesRepository
 import com.example.mealmate.utils.GoogleDriveHelper
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,13 +32,14 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
 
-class SettingsFragment : Fragment() {
+public class SettingsFragment : Fragment() {
 
     private lateinit var coverPhotoImage: ImageView
     private lateinit var profilePicture: ImageView
     private lateinit var homeButton: ImageButton
     private lateinit var discoverButton: ImageButton
     private lateinit var settingsButton: ImageButton
+    private lateinit var googleSignInClient: GoogleSignInClient
     private val PICK_IMAGE_REQUEST = 1
 
     override fun onCreateView(
@@ -40,6 +47,9 @@ class SettingsFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.settings_page, container, false)
+
+        // Initialize Google Sign-In client
+        initializeGoogleSignInClient()
 
         homeButton = view.findViewById(R.id.home_button)
         discoverButton = view.findViewById(R.id.discover_button)
@@ -59,10 +69,7 @@ class SettingsFragment : Fragment() {
 
         val logoutButton = view.findViewById<Button>(R.id.logout_button)
         logoutButton.setOnClickListener {
-            FirebaseAuth.getInstance().signOut()
-            val intent = Intent(activity, LoginPage::class.java)
-            startActivity(intent)
-            activity?.finish()
+            logout()
         }
 
         // Load profile picture using caching
@@ -76,6 +83,42 @@ class SettingsFragment : Fragment() {
         }
 
         return view
+    }
+
+    private fun logout() {
+        val auth = FirebaseAuth.getInstance()
+        auth.signOut() // Sign out from Firebase
+
+        // Clear cached categories and reset flags
+        CategoriesRepository.clearCachedCategories()
+        CategoriesRepository.isDataLoaded = false
+
+        googleSignInClient.signOut().addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                Log.d("SettingsFragment", "Successfully logged out from Google")
+
+                googleSignInClient.revokeAccess().addOnCompleteListener { revokeTask ->
+                    if (revokeTask.isSuccessful) {
+                        Log.d("SettingsFragment", "Access revoked successfully.")
+                    } else {
+                        Log.e("SettingsFragment", "Error revoking access.", revokeTask.exception)
+                    }
+                    navigateToLogin()
+                }
+            } else {
+                Log.e("SettingsFragment", "Error logging out from Google", task.exception)
+                navigateToLogin() // Navigate regardless of failure for user experience
+            }
+        }
+    }
+
+
+
+
+    private fun navigateToLogin() {
+        val intent = Intent(activity, LoginPage::class.java)
+        startActivity(intent)
+        activity?.finish()
     }
 
     private fun loadProfilePicture(userId: String) {
@@ -112,6 +155,14 @@ class SettingsFragment : Fragment() {
         startActivityForResult(intent, PICK_IMAGE_REQUEST)
     }
 
+    private fun initializeGoogleSignInClient() {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(getString(R.string.default_web_client_id))
+            .requestEmail()
+            .build()
+        googleSignInClient = GoogleSignIn.getClient(requireContext(), gso)
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == PICK_IMAGE_REQUEST && resultCode == Activity.RESULT_OK && data != null && data.data != null) {
@@ -146,5 +197,4 @@ class SettingsFragment : Fragment() {
             }
         }
     }
-
 }

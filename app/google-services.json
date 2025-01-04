@@ -20,6 +20,10 @@
             "package_name": "com.example.mealmate",
             "certificate_hash": "f49ee610d7dd5297b57358e7a9bde035cef786b3"
           }
+        },
+        {
+          "client_id": "771497686004-4f792653ccl5kh17hltlos4mja1tdp6v.apps.googleusercontent.com",
+          "client_type": 3
         }
       ],
       "api_key": [
@@ -29,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "771497686004-4f792653ccl5kh17hltlos4mja1tdp6v.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

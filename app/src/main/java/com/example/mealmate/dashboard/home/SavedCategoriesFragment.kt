@@ -29,6 +29,7 @@ import com.example.mealmate.R
 import com.example.mealmate.SavedRecipesFragment
 import com.example.mealmate.dashboard.GeneralFunctions
 import com.example.mealmate.repository.CategoriesRepository
+import com.google.firebase.auth.FirebaseAuth
 import java.util.jar.Manifest
 
 class SavedCategoriesFragment : Fragment() {
@@ -76,9 +77,14 @@ class SavedCategoriesFragment : Fragment() {
     }
 
     private fun setupCategories() {
-        // for every category in the database, add a card to the view
+        // Fetch the cached categories for the currently logged-in user
         val categories = CategoriesRepository.cachedCategories
+
+        // Clear existing views in the container to avoid duplicates
+        cardContainer.removeAllViews()
+
         if (categories.isNotEmpty()) {
+            // Add a card for each category in the cache
             categories.forEach { category ->
                 addCategoryCard(category)
             }
@@ -86,8 +92,11 @@ class SavedCategoriesFragment : Fragment() {
             Log.d("SavedCategoriesFragment", "No categories found.")
             Toast.makeText(requireContext(), "No categories available", Toast.LENGTH_SHORT).show()
         }
+
+        // Add a card for creating a new category
         addNewCategoryCard()
     }
+
 
     private fun initializeComponents(view: View) {
         cardContainer = view.findViewById(R.id.card_container_categories)

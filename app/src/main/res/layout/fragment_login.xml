@@ -69,7 +69,7 @@
         android:id="@+id/login"
         android:layout_width="319dp"
         android:layout_height="68dp"
-        android:layout_marginBottom="140dp"
+        android:layout_marginBottom="180dp"
         android:backgroundTint="#D48D5A"
         android:fontFamily="@font/lalezar"
         android:text="LOGIN"
@@ -122,6 +122,29 @@
         app:lottie_autoPlay="true"
         app:lottie_loop="true"
         app:lottie_fileName="animation_loading.lottie" />
+
+    <!-- horizontal bar  -->
+    <View
+        android:id="@+id/view"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginLeft="40dp"
+        android:layout_marginRight="40dp"
+        android:background="#686868"
+        app:layout_constraintTop_toBottomOf="@+id/register_link" />
+    <ImageView
+        android:id="@+id/google_icon"
+        android:layout_width="45dp"
+        android:layout_height="45dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="10dp"
+        app:srcCompat="@drawable/google_icon"
+        app:layout_constraintTop_toBottomOf="@+id/view"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintVertical_bias="0.9" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -24,6 +24,7 @@
         android:layout_width="319dp"
         android:layout_height="wrap_content"
         android:layout_marginBottom="20dp"
+        android:layout_marginTop="30dp"
         android:hint="Email"
         app:boxBackgroundColor="#E0CFB7"
         app:layout_constraintBottom_toTopOf="@+id/password_input_layout"
@@ -48,7 +49,7 @@
         android:id="@+id/password_input_layout"
         android:layout_width="319dp"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="80dp"
+        android:layout_marginBottom="50dp"
         android:hint="Password"
         android:backgroundTint="#D48D5A"
         app:layout_constraintBottom_toTopOf="@+id/login"
@@ -70,7 +71,7 @@
         android:id="@+id/login"
         android:layout_width="319dp"
         android:layout_height="68dp"
-        android:layout_marginBottom="140dp"
+        android:layout_marginBottom="200dp"
         android:backgroundTint="#D48D5A"
         android:fontFamily="@font/lalezar"
         android:text="LOGIN"
@@ -86,7 +87,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="32dp"
-        android:text="Don't have an account? "
+        android:text="Don't have a penis? "
         android:textColor="#FFFFFF"
         android:textSize="16sp"
         app:layout_constraintEnd_toEndOf="parent"
@@ -107,7 +108,28 @@
         app:layout_constraintEnd_toEndOf="parent"
         android:clickable="true"
         android:focusable="true" />
-<!--    -->
+
+    <!-- horizontal bar  -->
+    <View
+        android:id="@+id/view"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="20dp"
+        android:layout_marginLeft="40dp"
+        android:layout_marginRight="40dp"
+        android:background="#686868"
+        app:layout_constraintTop_toBottomOf="@+id/register_link" />
+    <ImageView
+        android:id="@+id/google_icon"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_marginTop="16dp"
+        app:srcCompat="@drawable/google_icon"
+        app:layout_constraintTop_toBottomOf="@+id/view"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintVertical_bias="0.9" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>
