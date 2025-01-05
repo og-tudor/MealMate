@@ -15,6 +15,7 @@ import android.widget.Button
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.example.mealmate.R
 import com.example.mealmate.dashboard.GeneralFunctions
@@ -25,6 +26,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -61,6 +63,27 @@ public class SettingsFragment : Fragment() {
         homeButton.setOnClickListener { generalFunctions.selectButton(homeButton) }
         discoverButton.setOnClickListener { generalFunctions.selectButton(discoverButton) }
         settingsButton.setOnClickListener { generalFunctions.selectButton(settingsButton) }
+
+        // notification button notification_token_button
+        val notificationButton = view.findViewById<Button>(R.id.notification_token_button)
+
+        notificationButton.setOnClickListener {
+            // Obține token-ul FCM
+            FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                if (!task.isSuccessful) {
+                    Log.w("FCM", "Fetching FCM registration token failed", task.exception)
+                    Toast.makeText(requireContext(), "Failed to fetch token", Toast.LENGTH_SHORT).show()
+                    return@addOnCompleteListener
+                }
+
+                // Token-ul obținut
+                val token = task.result
+                Log.d("FCM", "Device token: $token")
+
+                // Afișează token-ul într-un Toast (sau copiază-l pentru debug)
+                Toast.makeText(requireContext(), "Token: $token", Toast.LENGTH_LONG).show()
+            }
+        }
 
         val currentUser = FirebaseAuth.getInstance().currentUser
         val email = currentUser?.email

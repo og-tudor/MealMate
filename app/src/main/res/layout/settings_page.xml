@@ -91,10 +91,10 @@
         android:layout_marginHorizontal="64dp" />
 
     <Button
-        android:id="@+id/upload_settings_button"
+        android:id="@+id/notification_token_button"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="Upload"
+        android:text="Get Token"
         android:textColor="#FFFFFF"
         android:backgroundTint="#306C2E"
         android:layout_marginTop="32dp"
