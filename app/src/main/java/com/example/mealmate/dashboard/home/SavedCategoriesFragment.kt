@@ -144,10 +144,9 @@ class SavedCategoriesFragment : Fragment() {
 
         // Long press listener to show the popup menu
         categoryCard.setOnLongClickListener {
-            // Inflate the popup view
+            val inflater = LayoutInflater.from(requireContext())
             val popupView = inflater.inflate(R.layout.popup_window_categories, null)
 
-            // Create a PopupWindow
             val popupWindow = PopupWindow(
                 popupView,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -155,23 +154,52 @@ class SavedCategoriesFragment : Fragment() {
                 true
             )
 
-            // Set up the Edit Button
+            // -----------------------
+            // 1) Configure EDIT layout
+            // -----------------------
             val editButton = popupView.findViewById<LinearLayout>(R.id.edit_button)
-            editButton.setOnClickListener {
-                // Handle the Edit action
+            // Find the TextView and ImageView inside the included layout
+            val editTextView = editButton.findViewById<TextView>(R.id.menu_option_text)
+            val editIcon = editButton.findViewById<ImageView>(R.id.menu_option_icon)
 
+            // Override text and color
+            editTextView.text = "Edit"
+            editTextView.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white))
+            // Optionally, change the icon if you want a different one
+            editIcon.setImageResource(R.drawable.icon_edit)  // Example icon
+
+            editButton.setOnClickListener {
+                // Handle the Edit action here
                 popupWindow.dismiss()
             }
 
-            // Set up the Delete Button
+            // ------------------------
+            // 2) Configure DELETE layout
+            // ------------------------
             val deleteButton = popupView.findViewById<LinearLayout>(R.id.delete_button)
+            // Find the TextView and ImageView inside the included layout
+            val deleteTextView = deleteButton.findViewById<TextView>(R.id.menu_option_text)
+            val deleteIcon = deleteButton.findViewById<ImageView>(R.id.menu_option_icon)
+
+            // Override text and color
+            deleteTextView.text = "Delete"
+            deleteTextView.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.holo_red_dark))
+            // Optionally, change the icon if you want a different one
+            deleteIcon.setImageResource(R.drawable.icon_delete)  // Example icon
+
             deleteButton.setOnClickListener {
-                context?.let { it1 ->
-                    CategoriesRepository.deleteCategory(it1, category.id) { success ->
+                context?.let { context ->
+                    CategoriesRepository.deleteCategory(context, category.id) { success ->
                         if (success) {
-                            Log.d("SettingsFragment", "Category deleted successfully.")
+                            Log.d("SavedCategoriesFragment", "Category deleted successfully.")
+                            // Show confirmation to user
+                            Toast.makeText(requireContext(), "Category deleted successfully", Toast.LENGTH_SHORT).show()
+                            // Refresh the categories so the deleted one no longer appears
+                            refreshCategoriesDisplay()
                         } else {
-                            Log.e("SettingsFragment", "Failed to delete category.")
+                            Log.e("SavedCategoriesFragment", "Failed to delete category.")
+                            // Show error to user
+                            Toast.makeText(requireContext(), "Failed to delete category. Please try again.", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
@@ -179,10 +207,11 @@ class SavedCategoriesFragment : Fragment() {
             }
 
 
-            // Show the PopupWindow below the card
+            // Show popup below the card
             popupWindow.showAsDropDown(categoryCard)
-            true // Indicate that the long press was handled
+            true
         }
+
 
         cardContainer.addView(categoryCard)
     }

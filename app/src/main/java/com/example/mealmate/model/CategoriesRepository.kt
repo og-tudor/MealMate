@@ -125,22 +125,43 @@ object CategoriesRepository {
                     Log.e("CategoriesRepository", "Error deleting photo for category $categoryId")
                 }
 
-                // Step 2: Delete the Firestore entry
-                firestore.collection("users")
+                // Step 2: Delete the Firestore category + subcollection
+                val categoryDocRef = firestore.collection("users")
                     .document(userId)
                     .collection("categories")
                     .document(categoryId)
-                    .delete()
-                    .addOnSuccessListener {
-                        // Remove the category from the cache
-                        cachedCategories.removeIf { it.id == categoryId }
-                        Log.d("CategoriesRepository", "Category $categoryId deleted successfully.")
-                        callback(true)
+
+                // Fetch all documents in the "recipes" subcollection (or any other subcollection you want to remove)
+                categoryDocRef.collection("recipes")
+                    .get()
+                    .addOnSuccessListener { recipesSnapshot ->
+                        val batch = firestore.batch()
+
+                        // Add all recipe documents to the batch for deletion
+                        for (recipeDoc in recipesSnapshot.documents) {
+                            batch.delete(recipeDoc.reference)
+                        }
+                        // Finally, delete the category document itself
+                        batch.delete(categoryDocRef)
+
+                        // Commit all deletions in one batch
+                        batch.commit()
+                            .addOnSuccessListener {
+                                // Remove the category from cache
+                                cachedCategories.removeIf { it.id == categoryId }
+                                Log.d("CategoriesRepository", "Category $categoryId and all its subcollections deleted successfully.")
+                                callback(true)
+                            }
+                            .addOnFailureListener { e ->
+                                Log.e("CategoriesRepository", "Error deleting category: ${e.message}", e)
+                                callback(false)
+                            }
                     }
                     .addOnFailureListener { e ->
-                        Log.e("CategoriesRepository", "Error deleting category from Firestore: ${e.message}", e)
+                        Log.e("CategoriesRepository", "Error fetching recipes subcollection: ${e.message}", e)
                         callback(false)
                     }
+
             } catch (e: Exception) {
                 Log.e("CategoriesRepository", "Error deleting category $categoryId: ${e.message}", e)
                 withContext(Dispatchers.Main) {
@@ -149,6 +170,7 @@ object CategoriesRepository {
             }
         }
     }
+
 
 
 
