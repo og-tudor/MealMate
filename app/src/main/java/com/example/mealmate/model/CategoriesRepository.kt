@@ -211,6 +211,76 @@ object CategoriesRepository {
             }
     }
 
+    fun updateCategory(
+        context: Context,
+        categoryId: String,
+        newName: String,
+        newPhoto: Bitmap?,
+        callback: (Boolean) -> Unit
+    ) {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (userId == null) {
+            Log.e("CategoriesRepository", "User not authenticated.")
+            callback(false)
+            return
+        }
+
+        val driveHelper = GoogleDriveHelper(context)
+        val categoryDocRef = firestore.collection("users")
+            .document(userId)
+            .collection("categories")
+            .document(categoryId)
+
+        // 1. Update just the name in Firestore
+        val updates = hashMapOf<String, Any>("name" to newName)
+
+        categoryDocRef.update(updates)
+            .addOnSuccessListener {
+                // 2. If user picked a new photo, upload it to Drive
+                if (newPhoto != null) {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            val categoryFolderId = driveHelper.getOrCreateCategoryFolder(userId, categoryId)
+
+                            // Overwrite the existing photo
+                            val outputStream = ByteArrayOutputStream()
+                            newPhoto.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+                            val photoData = outputStream.toByteArray()
+
+                            driveHelper.uploadCategoryPhoto(categoryFolderId, "category_photo.png", photoData)
+
+                            // Update local cache as well
+                            cachedCategories.find { it.id == categoryId }?.apply {
+                                name = newName
+                                photo = newPhoto
+                            }
+
+                            withContext(Dispatchers.Main) {
+                                Log.d("CategoriesRepository", "Category $categoryId updated successfully.")
+                                callback(true)
+                            }
+                        } catch (e: Exception) {
+                            Log.e("CategoriesRepository", "Error updating category photo: ${e.message}", e)
+                            withContext(Dispatchers.Main) { callback(false) }
+                        }
+                    }
+                } else {
+                    // No new photo was chosen; just update name in cache
+                    cachedCategories.find { it.id == categoryId }?.apply {
+                        name = newName
+                        // Keep the old photo
+                    }
+                    Log.d("CategoriesRepository", "Category $categoryId updated (no new photo).")
+                    callback(true)
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e("CategoriesRepository", "Error updating category name: ${e.message}", e)
+                callback(false)
+            }
+    }
+
+
     private fun uploadPhotoToDrive(context: Context, userId: String, categoryId: String, photo: Bitmap, callback: (Boolean) -> Unit) {
         CoroutineScope(Dispatchers.IO).launch {
             try {

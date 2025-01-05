@@ -169,9 +169,10 @@ class SavedCategoriesFragment : Fragment() {
             editIcon.setImageResource(R.drawable.icon_edit)  // Example icon
 
             editButton.setOnClickListener {
-                // Handle the Edit action here
                 popupWindow.dismiss()
+                showEditCategoryDialog(category)
             }
+
 
             // ------------------------
             // 2) Configure DELETE layout
@@ -215,6 +216,87 @@ class SavedCategoriesFragment : Fragment() {
 
         cardContainer.addView(categoryCard)
     }
+
+    private fun showEditCategoryDialog(category: Category2) {
+        // Create and configure the same dialog
+        val dialog = Dialog(requireContext())
+        dialog.setContentView(R.layout.modal_add_card)
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val dialogWidth = (resources.displayMetrics.widthPixels * 0.8).toInt()
+        val dialogHeight = (resources.displayMetrics.heightPixels * 0.6).toInt()
+        dialog.window?.setLayout(dialogWidth, dialogHeight)
+
+        // References to views
+        val coverPhotoSection = dialog.findViewById<LinearLayout>(R.id.cover_photo_section)
+        coverPhotoImage = dialog.findViewById(R.id.cover_photo_image)
+        val uploadText = dialog.findViewById<TextView>(R.id.upload_text)
+        val editTextName = dialog.findViewById<EditText>(R.id.new_modal_name)
+        val saveButton = dialog.findViewById<Button>(R.id.save_button)
+        val cancelButton = dialog.findViewById<Button>(R.id.cancel_button)
+
+        // Pre-fill the category name
+        editTextName.setText(category.name)
+
+        // If the category has a photo, display it
+        if (category.photo != null) {
+            coverPhotoImage.setImageBitmap(category.photo)
+            uploadText.visibility = View.GONE
+            coverPhotoImage.layoutParams.width = LinearLayout.LayoutParams.MATCH_PARENT
+            coverPhotoImage.layoutParams.height = LinearLayout.LayoutParams.MATCH_PARENT
+            coverPhotoImage.scaleType = ImageView.ScaleType.CENTER_CROP
+            coverPhotoImage.requestLayout()
+        } else {
+            // If no photo, leave the default icon & text
+            uploadText.visibility = View.VISIBLE
+        }
+
+        // Handle user selecting a new photo
+        coverPhotoSection.setOnClickListener {
+            Log.d("SavedCategoriesFragment", "Cover photo section clicked (edit).")
+            generalFunctions.openGallery { bitmap: Bitmap ->
+                // This will be your new photo, if the user picks something
+                selectedPhoto = bitmap
+                coverPhotoImage.setImageBitmap(bitmap)
+                uploadText.visibility = View.GONE
+                coverPhotoImage.layoutParams.width = LinearLayout.LayoutParams.MATCH_PARENT
+                coverPhotoImage.layoutParams.height = LinearLayout.LayoutParams.MATCH_PARENT
+                coverPhotoImage.scaleType = ImageView.ScaleType.CENTER_CROP
+                coverPhotoImage.requestLayout()
+            }
+        }
+
+        // Save button updates the category, not create a new one
+        saveButton.setOnClickListener {
+            val updatedName = editTextName.text.toString().trim()
+            if (updatedName.isNotEmpty()) {
+                Log.d("SavedCategoriesFragment", "Updating category: $updatedName")
+
+                // If user didn't pick a new photo, keep the old one
+                val photoToUse = selectedPhoto ?: category.photo
+
+                CategoriesRepository.updateCategory(requireContext(), category.id, updatedName, photoToUse) { success ->
+                    if (success) {
+                        Toast.makeText(requireContext(), "Category updated successfully", Toast.LENGTH_SHORT).show()
+                        dialog.dismiss()
+                        refreshCategoriesDisplay()
+                    } else {
+                        Toast.makeText(requireContext(), "Failed to update category. Please try again.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } else {
+                Toast.makeText(requireContext(), "Category name cannot be empty", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Cancel button closes dialog
+        cancelButton.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
 
 
     private fun addNewCategoryCard() {
