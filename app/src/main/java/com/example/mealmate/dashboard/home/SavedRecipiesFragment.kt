@@ -1,10 +1,8 @@
 package com.example.mealmate
 
 import Ingredient
-import android.Manifest
 import android.app.Dialog
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.ImageDecoder
@@ -20,25 +18,21 @@ import android.widget.*
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.airbnb.lottie.LottieAnimationView
 import com.example.mealmate.dashboard.GeneralFunctions
 import com.example.mealmate.dashboard.home.SavedCategoriesFragment
 import com.example.mealmate.model.Recipe
-import com.example.mealmate.repository.CategoriesRepository
 import com.example.mealmate.repository.RecipesRepository
 import com.example.mealmate.utils.AnimationHandler
 import com.example.mealmate.utils.FragmentSource
-import com.google.firebase.auth.FirebaseAuth
 import com.yourpackage.name.RecipeFragment
 import java.util.Locale
 
 class SavedRecipesFragment : Fragment() {
 
     private lateinit var coverPhotoImage: ImageView
-    private var selectedPhotoBitmap: Bitmap? = null
     private lateinit var cardContainer: GridLayout
     private lateinit var generalFunctions: GeneralFunctions
     private lateinit var homeButton: ImageButton
@@ -282,6 +276,10 @@ class SavedRecipesFragment : Fragment() {
         val saveButton = dialog.findViewById<Button>(R.id.save_button)
         val cancelButton = dialog.findViewById<Button>(R.id.cancel_button)
 
+        // schimbam numele modalului
+        dialog.findViewById<TextView>(R.id.modal_name).text = "Edit Recipe"
+
+
         // Pre-umple câmpurile cu datele rețetei
         editTextName.setText(recipe.title)
         if (recipe.imageBitmap != null) {
@@ -328,40 +326,6 @@ class SavedRecipesFragment : Fragment() {
     }
 
 
-    private fun setupRecipies() {
-        // for every category in the database, add a card to the view
-        val recipies = RecipesRepository.getCachedRecipesForCategory(categoryId)
-        if (recipies.isNotEmpty()) {
-            recipies.forEach { recipe ->
-                addRecipeCard(recipe)
-            }
-        } else {
-            Log.d("SavedCategoriesFragment", "No categories found.")
-            Toast.makeText(requireContext(), "No categories available", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun addRecipeCard(recipe: Recipe) {
-        val inflater = LayoutInflater.from(requireContext())
-        val recipeCard = inflater.inflate(R.layout.recipes_library_default_card, cardContainer, false)
-
-        val itemTitle = recipeCard.findViewById<TextView>(R.id.item_title)
-        val itemImage = recipeCard.findViewById<ImageView>(R.id.recipe_library_item_image)
-
-        itemTitle.text = recipe.title
-        itemImage.setImageBitmap(recipe.imageBitmap)
-
-        recipeCard.setOnClickListener {
-            val bundle = Bundle().apply {
-                putString("recipeId", recipe.id)
-            }
-            generalFunctions.navigateToFragment(SavedRecipesFragment(), args = bundle)
-        }
-
-        cardContainer.addView(recipeCard)
-    }
-
-
     private fun showAddRecipeDialog(categoryId: String) {
         val dialog = Dialog(requireContext())
         dialog.setContentView(R.layout.modal_add_card)
@@ -396,20 +360,20 @@ class SavedRecipesFragment : Fragment() {
                     ingredientsWithQuantities = emptyList(),
                     imageBitmap = selectedPhoto
                 )
-                Log.d("SavedCategoriesFragment", "Save button clicked. Saving category: $recipeName")
+                Log.d("SavedRecipiesFragment", "Save button clicked. Saving recipe: $recipeName")
+                dialog.dismiss()
                 RecipesRepository.addNewRecipe(requireContext(), categoryId, recipeItem, selectedPhoto) { success ->
                     if (success) {
-                        Toast.makeText(requireContext(), "Category added successfully", Toast.LENGTH_SHORT).show()
-                        dialog.dismiss()
-                        // Refresh the UI to display the new category
+                        Toast.makeText(requireContext(), "Recipe added successfully", Toast.LENGTH_SHORT).show()
+                        // Refresh the UI to display the new recipe
                         refreshRecipiesDisplay()
                     } else {
-                        Toast.makeText(requireContext(), "Failed to add category. Please try again.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), "Failed to add recipe. Please try again.", Toast.LENGTH_SHORT).show()
                     }
                 }
             } else {
-                Log.d("SavedCategoriesFragment", "Save button clicked but category name is empty.")
-                Toast.makeText(requireContext(), "Category name cannot be empty", Toast.LENGTH_SHORT).show()
+                Log.d("SavedRecipiesFragment", "Save button clicked but recipe name is empty.")
+                Toast.makeText(requireContext(), "Recipe name cannot be empty", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -434,30 +398,6 @@ class SavedRecipesFragment : Fragment() {
 
         // Reload the recipes
         loadRecipes(categoryId)
-    }
-
-
-    private fun saveRecipeToRepository(recipeName: String, categoryId: String) {
-        selectedPhotoBitmap?.let { bitmap ->
-            val recipe = Recipe(
-                id = "", // Let the repository generate an ID if needed
-                title = recipeName,
-                instructions = "",
-                ingredientsWithQuantities = emptyList(),
-                imageBitmap = bitmap
-            )
-
-            RecipesRepository.addNewRecipe(requireContext(), categoryId, recipe, bitmap) { success ->
-                if (success) {
-                    Toast.makeText(requireContext(), "Recipe added successfully!", Toast.LENGTH_SHORT).show()
-                    createRecipeCard(recipe)
-                } else {
-                    Toast.makeText(requireContext(), "Error adding recipe", Toast.LENGTH_SHORT).show()
-                }
-            }
-        } ?: run {
-            Toast.makeText(requireContext(), "Please select a photo", Toast.LENGTH_SHORT).show()
-        }
     }
 
 
