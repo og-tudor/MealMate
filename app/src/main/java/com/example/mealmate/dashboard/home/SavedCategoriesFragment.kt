@@ -30,6 +30,7 @@ import com.example.mealmate.SavedRecipesFragment
 import com.example.mealmate.dashboard.GeneralFunctions
 import com.example.mealmate.repository.CategoriesRepository
 import com.google.firebase.auth.FirebaseAuth
+import java.util.Locale
 import java.util.jar.Manifest
 
 class SavedCategoriesFragment : Fragment() {
@@ -109,6 +110,51 @@ class SavedCategoriesFragment : Fragment() {
         homeButton.setOnClickListener { generalFunctions.selectButton(homeButton) }
         discoverButton.setOnClickListener { generalFunctions.selectButton(discoverButton) }
         settingsButton.setOnClickListener { generalFunctions.selectButton(settingsButton) }
+
+        val searchBar = view.findViewById<EditText>(R.id.search_input)
+        val search_icon = view.findViewById<ImageView>(R.id.search_icon_button)
+        searchBar.addTextChangedListener(object : android.text.TextWatcher {
+            //
+
+            override fun afterTextChanged(s: android.text.Editable?) {
+            }
+
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+            }
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val query = s.toString().trim().lowercase(Locale.ROOT)
+                // change the color of the search bar if the query is not empty
+                search_icon.setColorFilter(
+                    if (query.isEmpty()) {
+                        ContextCompat.getColor(requireContext(), R.color.black)
+                    } else {
+                        ContextCompat.getColor(requireContext(), R.color.orange)
+                    }
+                )
+
+                // go through each card in the container
+                for (i in 0 until cardContainer.childCount) {
+                    // print the name and id of the card
+                    val card = cardContainer.getChildAt(i)
+
+                    // if the card is the new category card, remain visible
+                    if (card.tag == "new_category") {
+                        card.visibility = View.VISIBLE
+                        continue
+                    }
+                    // get the title of the text view inside the card and the title
+                    val itemTitle = card.findViewById<TextView>(R.id.item_title)
+                    if (itemTitle != null) {
+                        val title = itemTitle.text.toString().lowercase(Locale.ROOT)
+                        // if the title starts with the query, make the card visible, otherwise hide it
+                        card.visibility = if (title.startsWith(query)) View.VISIBLE else View.GONE
+                    } else {
+                        card.visibility = View.VISIBLE
+                    }
+                }
+            }
+        })
 
         ViewCompat.setOnApplyWindowInsetsListener(view.findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
@@ -302,6 +348,7 @@ class SavedCategoriesFragment : Fragment() {
     private fun addNewCategoryCard() {
         val inflater = LayoutInflater.from(requireContext())
         val newCategoryCard = inflater.inflate(R.layout.categories_new_card, cardContainer, false)
+        newCategoryCard.tag = "new_category"
 
         newCategoryCard.setOnClickListener {
             Log.d("SavedCategoriesFragment", "New Category card clicked.")

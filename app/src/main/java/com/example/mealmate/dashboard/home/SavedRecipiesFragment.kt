@@ -33,6 +33,7 @@ import com.example.mealmate.utils.AnimationHandler
 import com.example.mealmate.utils.FragmentSource
 import com.google.firebase.auth.FirebaseAuth
 import com.yourpackage.name.RecipeFragment
+import java.util.Locale
 
 class SavedRecipesFragment : Fragment() {
 
@@ -48,6 +49,7 @@ class SavedRecipesFragment : Fragment() {
     private lateinit var categoryId: String
     private lateinit var animationHandler: AnimationHandler
     private lateinit var lottieAnimationView: LottieAnimationView
+    private val allRecipeCards = mutableListOf<View>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -94,8 +96,64 @@ class SavedRecipesFragment : Fragment() {
         }
 
         val recipeAddNewCardButton = view.findViewById<View>(R.id.new_recipe_card)
+        recipeAddNewCardButton.tag = "new_recipe_card"
+        // add it also to the list of all recipe cards
+        allRecipeCards.add(recipeAddNewCardButton)
+
         recipeAddNewCardButton.setOnClickListener { showAddRecipeDialog(categoryId) }
 
+        val searchBar = view.findViewById<EditText>(R.id.search_input)
+        val searchIcon = view.findViewById<ImageView>(R.id.search_icon_button)
+        searchBar.addTextChangedListener(object : android.text.TextWatcher {
+            //
+
+            override fun afterTextChanged(s: android.text.Editable?) {
+            }
+
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+            }
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val query = s.toString().trim().lowercase(Locale.ROOT)
+
+                // change the color of the search icon based on the query
+                searchIcon.setColorFilter(
+                    if (query.isEmpty()) {
+                        ContextCompat.getColor(requireContext(), R.color.black)
+                    } else {
+                        ContextCompat.getColor(requireContext(), R.color.orange)
+                    }
+                )
+
+                // get the "new recipe" card
+                val newRecipeCard = allRecipeCards.find { it.tag == "new_recipe_card" }
+
+                // filter the cards based on the query excluding the "new recipe" card
+                val matchingCards = allRecipeCards.filter { card ->
+                    if (card.tag == "new_recipe_card") {
+                        false
+                    } else {
+                        // get the title of the card
+                        val itemTitle = card.findViewById<TextView>(R.id.item_title)
+                        val title = itemTitle?.text?.toString()?.lowercase(Locale.ROOT) ?: ""
+                        title.startsWith(query)
+                    }
+                }
+
+                // sort the matching cards by title
+                val sortedMatchingCards = matchingCards.sortedBy { card ->
+                    val itemTitle = card.findViewById<TextView>(R.id.item_title)
+                    (itemTitle?.text?.toString()?.lowercase(Locale.ROOT) ?: "")
+                }
+
+                // recreate the card container
+                cardContainer.removeAllViews()
+                newRecipeCard?.let { cardContainer.addView(it) }
+                sortedMatchingCards.forEach { cardContainer.addView(it) }
+            }
+
+
+        })
 
         lottieAnimationView = view.findViewById(R.id.lottie_animation_view)
         animationHandler = AnimationHandler(lottieAnimationView)
@@ -110,7 +168,9 @@ class SavedRecipesFragment : Fragment() {
         RecipesRepository.loadRecipes(requireContext(), categoryId) { success ->
             if (success) {
                 val recipes = RecipesRepository.getCachedRecipesForCategory(categoryId)
-                recipes.forEach { recipe -> createRecipeCard(recipe) }
+                // sort them by title
+                val sortedRecipes = recipes.sortedBy { it.title.lowercase(Locale.ROOT) }
+                sortedRecipes.forEach { recipe -> createRecipeCard(recipe) }
                 animationHandler.hideAnimation()
             } else {
                 Toast.makeText(requireContext(), "Error loading recipes", Toast.LENGTH_SHORT).show()
@@ -202,6 +262,7 @@ class SavedRecipesFragment : Fragment() {
         }
 
         cardContainer.addView(recipeCard)
+        allRecipeCards.add(recipeCard)
     }
 
     private fun showEditRecipeDialog(recipe: Recipe) {
