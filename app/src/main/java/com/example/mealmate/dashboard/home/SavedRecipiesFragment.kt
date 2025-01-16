@@ -131,7 +131,7 @@ class SavedRecipesFragment : Fragment() {
                 Ingredient(name, quantity)
             }.toTypedArray()
 
-// Create an instance of RecipeFragment with the recipe data
+            // Create an instance of RecipeFragment with the recipe data
             val fragment = RecipeFragment.newInstance(
                 recipeName = recipe.title,
                 imageUri = null,                     // Set imageUri to null since we're using imageBitmap
@@ -144,13 +144,128 @@ class SavedRecipesFragment : Fragment() {
                 recipeCategory = recipe.recipeCategory
             )
 
-// Use GeneralFunctions to handle the navigation
+            // Use GeneralFunctions to handle the navigation
             generalFunctions.navigateToFragment(fragment)
 
         }
 
+        // Long click: afișăm popup-ul cu opțiunile Edit și Delete
+        recipeCard.setOnLongClickListener {
+            val inflater = LayoutInflater.from(requireContext())
+            // Folosim același layout de popup, sau poți crea unul nou, de ex. popup_window_recipes.xml
+            val popupView = inflater.inflate(R.layout.popup_window_categories, null)
+
+            val popupWindow = PopupWindow(
+                popupView,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                true
+            )
+
+            // Configurăm butonul EDIT
+            val editButton = popupView.findViewById<LinearLayout>(R.id.edit_button)
+            val editTextView = editButton.findViewById<TextView>(R.id.menu_option_text)
+            val editIcon = editButton.findViewById<ImageView>(R.id.menu_option_icon)
+            editTextView.text = "Edit"
+            editTextView.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white))
+            editIcon.setImageResource(R.drawable.icon_edit)  // Asigură-te că ai un icon corespunzător
+
+            editButton.setOnClickListener {
+                popupWindow.dismiss()
+                showEditRecipeDialog(recipe)
+            }
+
+            // Configurăm butonul DELETE
+            val deleteButton = popupView.findViewById<LinearLayout>(R.id.delete_button)
+            val deleteTextView = deleteButton.findViewById<TextView>(R.id.menu_option_text)
+            val deleteIcon = deleteButton.findViewById<ImageView>(R.id.menu_option_icon)
+            deleteTextView.text = "Delete"
+            deleteTextView.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.holo_red_dark))
+            deleteIcon.setImageResource(R.drawable.icon_delete)  // Asigură-te că ai un icon corespunzător
+
+            deleteButton.setOnClickListener {
+                // Apelăm funcția din RecipesRepository pentru a șterge rețeta
+                RecipesRepository.deleteRecipe(requireContext(), categoryId, recipe.id) { success ->
+                    if (success) {
+                        Toast.makeText(requireContext(), "Recipe deleted successfully", Toast.LENGTH_SHORT).show()
+                        refreshRecipiesDisplay()
+                    } else {
+                        Toast.makeText(requireContext(), "Failed to delete recipe. Please try again.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                popupWindow.dismiss()
+            }
+
+            // Afișăm popup-ul sub card
+            popupWindow.showAsDropDown(recipeCard)
+            true
+        }
+
         cardContainer.addView(recipeCard)
     }
+
+    private fun showEditRecipeDialog(recipe: Recipe) {
+        val dialog = Dialog(requireContext())
+        dialog.setContentView(R.layout.modal_add_card)  // Poți crea un layout specific pentru editarea rețetei
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val dialogWidth = (resources.displayMetrics.widthPixels * 0.85).toInt()
+        val dialogHeight = (resources.displayMetrics.heightPixels * 0.6).toInt()
+        dialog.window?.setLayout(dialogWidth, dialogHeight)
+
+        // Referințe la view-uri din dialog
+        val coverPhotoSection = dialog.findViewById<LinearLayout>(R.id.cover_photo_section)
+        val coverPhotoImage = dialog.findViewById<ImageView>(R.id.cover_photo_image)
+        val uploadText = dialog.findViewById<TextView>(R.id.upload_text)
+        val editTextName = dialog.findViewById<EditText>(R.id.new_modal_name)
+        val saveButton = dialog.findViewById<Button>(R.id.save_button)
+        val cancelButton = dialog.findViewById<Button>(R.id.cancel_button)
+
+        // Pre-umple câmpurile cu datele rețetei
+        editTextName.setText(recipe.title)
+        if (recipe.imageBitmap != null) {
+            coverPhotoImage.setImageBitmap(recipe.imageBitmap)
+            uploadText.visibility = View.GONE
+            coverPhotoImage.scaleType = ImageView.ScaleType.CENTER_CROP
+        } else {
+            uploadText.visibility = View.VISIBLE
+        }
+
+        // Permite utilizatorului să selecteze o nouă poză
+        coverPhotoSection.setOnClickListener {
+            // Exemplu: poți reutiliza un launcher din gallery sau o funcție similară
+            generalFunctions.openGallery { bitmap: Bitmap ->
+                coverPhotoImage.setImageBitmap(bitmap)
+                uploadText.visibility = View.GONE
+                // Poți salva bitmap-ul ales într-o variabilă temporară
+                selectedPhoto = bitmap
+            }
+        }
+
+        // Salvare: actualizează rețeta existentă
+        saveButton.setOnClickListener {
+            val updatedName = editTextName.text.toString().trim()
+            if (updatedName.isNotEmpty()) {
+                val photoToUse = selectedPhoto ?: recipe.imageBitmap
+                // Aici ai nevoie de o funcție în repository pentru update
+                RecipesRepository.updateRecipe(requireContext(), categoryId, recipe.id, updatedName, photoToUse) { success ->
+                    if (success) {
+                        Toast.makeText(requireContext(), "Recipe updated successfully", Toast.LENGTH_SHORT).show()
+                        dialog.dismiss()
+                        refreshRecipiesDisplay()
+                    } else {
+                        Toast.makeText(requireContext(), "Failed to update recipe. Please try again.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } else {
+                Toast.makeText(requireContext(), "Recipe name cannot be empty", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        cancelButton.setOnClickListener { dialog.dismiss() }
+        dialog.show()
+    }
+
 
     private fun setupRecipies() {
         // for every category in the database, add a card to the view

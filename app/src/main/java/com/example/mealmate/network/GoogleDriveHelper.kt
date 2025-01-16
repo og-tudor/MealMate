@@ -177,6 +177,35 @@ class GoogleDriveHelper(private val context: Context) {
     }
 
 
+    suspend fun deleteRecipeFolder(recipeFolderId: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val driveService = getDriveService()
+            // Construim o interogare pentru a lista toate fișierele din folderul dat
+            val query = "'$recipeFolderId' in parents and trashed = false"
+            val result: FileList = driveService.files().list()
+                .setQ(query)
+                .setSpaces("drive")
+                .setFields("files(id)")
+                .execute()
+
+            // Ștergem fiecare fișier găsit în folder
+            result.files.forEach { file ->
+                driveService.files().delete(file.id).execute()
+                Log.d("GoogleDriveHelper", "Deleted file: ${file.id} in recipe folder: $recipeFolderId")
+            }
+
+            // Ștergem apoi folderul propriu-zis
+            driveService.files().delete(recipeFolderId).execute()
+            Log.d("GoogleDriveHelper", "Recipe folder deleted successfully for folder: $recipeFolderId")
+            true
+        } catch (e: Exception) {
+            Log.e("GoogleDriveHelper", "Error deleting recipe folder: $recipeFolderId. ${e.message}", e)
+            false
+        }
+    }
+
+
+
     fun uploadUserProfilePicture(filePath: java.io.File) {
         auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()

@@ -69,6 +69,121 @@ object RecipesRepository {
             }
     }
 
+
+    fun deleteRecipe(context: Context, categoryId: String, recipeId: String, callback: (Boolean) -> Unit) {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (userId == null) {
+            Log.e("RecipesRepository", "User not authenticated.")
+            callback(false)
+            return
+        }
+
+        firestore.collection("users").document(userId)
+            .collection("categories").document(categoryId)
+            .collection("recipes").document(recipeId)
+            .delete()
+            .addOnSuccessListener {
+                // Ștergem rețeta din cache
+                cachedRecipes[categoryId] = cachedRecipes[categoryId]
+                    ?.filter { it.id != recipeId }
+                    ?.toMutableList() ?: mutableListOf()
+
+                // După ștergerea din Firestore, ștergem folderul asociat din Google Drive
+                val driveHelper = GoogleDriveHelper(context)
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        // Obținem folderul pentru rețetă
+                        val recipeFolderId = driveHelper.getOrCreateRecipeFolder(userId, categoryId, recipeId)
+                        // Ștergem folderul și toate fișierele din el
+                        val driveDeleted = driveHelper.deleteRecipeFolder(recipeFolderId)
+                        if (driveDeleted) {
+                            Log.d("RecipesRepository", "Recipe folder deleted successfully from Drive.")
+                        } else {
+                            Log.e("RecipesRepository", "Error deleting recipe folder from Drive.")
+                        }
+                    } catch (e: Exception) {
+                        Log.e("RecipesRepository", "Exception in deleting recipe folder: ${e.message}", e)
+                    }
+                }
+                callback(true)
+            }
+            .addOnFailureListener { e ->
+                Log.e("RecipesRepository", "Error deleting recipe: ${e.message}", e)
+                callback(false)
+            }
+    }
+
+
+
+    fun updateRecipe(
+        context: Context,
+        categoryId: String,
+        recipeId: String,
+        updatedName: String,
+        photo: Bitmap?,
+        callback: (Boolean) -> Unit
+    ) {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (userId == null) {
+            Log.e("RecipesRepository", "User not authenticated.")
+            callback(false)
+            return
+        }
+
+        val updateData = hashMapOf<String, Any>(
+            "title" to updatedName
+        )
+
+        firestore.collection("users").document(userId)
+            .collection("categories").document(categoryId)
+            .collection("recipes").document(recipeId)
+            .update(updateData)
+            .addOnSuccessListener {
+                // Actualizează cache-ul
+                cachedRecipes[categoryId]?.find { it.id == recipeId }?.let { oldRecipe ->
+                    val updatedRecipe = oldRecipe.copy(
+                        title = updatedName,
+                        imageBitmap = photo ?: oldRecipe.imageBitmap
+                    )
+                    cachedRecipes[categoryId] = cachedRecipes[categoryId]?.map {
+                        if (it.id == recipeId) updatedRecipe else it
+                    }?.toMutableList() ?: mutableListOf()
+                }
+
+                // Dacă a fost selectată o nouă poză, actualizăm și poza în Google Drive
+                if (photo != null) {
+                    val driveHelper = GoogleDriveHelper(context)
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            // Obținem folderul asociat rețetei (creându-l dacă nu există deja)
+                            val recipeFolderId = driveHelper.getOrCreateRecipeFolder(userId, categoryId, recipeId)
+                            // Actualizăm poza în folder – metoda uploadRecipePhoto se ocupă de ștergerea fișierului existent (cu numele "recipe_photo.png") înainte de a încărca poza nouă
+                            driveHelper.uploadRecipePhoto(recipeFolderId, bitmapToByteArray(photo))
+                            Log.d("RecipesRepository", "Recipe photo updated successfully in Drive.")
+                        } catch (e: Exception) {
+                            Log.e("RecipesRepository", "Error updating recipe photo on Drive: ${e.message}", e)
+                        }
+                    }
+                }
+                callback(true)
+            }
+            .addOnFailureListener { e ->
+                Log.e("RecipesRepository", "Error updating recipe: ${e.message}", e)
+                callback(false)
+            }
+    }
+
+    // Funcție helper pentru conversia Bitmap -> ByteArray
+    private fun bitmapToByteArray(photo: Bitmap): ByteArray {
+        val outputStream = ByteArrayOutputStream()
+        photo.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+        return outputStream.toByteArray()
+    }
+
+
+
+
+
     private fun loadRecipePhotos(
         context: Context,
         userId: String,
