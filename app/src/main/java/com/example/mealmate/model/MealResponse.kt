@@ -68,39 +68,26 @@ data class Meal(
          return ingredientsWithMeasures
      }
 
-
-
-//    companion object {
-//        // Factory method to create a Meal instance with lists populated from individual fields
-//        fun fromApiResponse(
-//            idMeal: String,
-//            strMeal: String,
-//            strInstructions: String,
-//            strMealThumb: String,
-//            strTags: String?,
-//            vararg ingredientsAndMeasures: Pair<String?, String?>
-//        ): Meal {
-//            val ingredients = mutableListOf<String>()
-//            val measures = mutableListOf<String>()
-//
-//            for ((ingredient, measure) in ingredientsAndMeasures) {
-//                if (!ingredient.isNullOrBlank()) {
-//                    ingredients.add(ingredient)
-//                }
-//                if (!measure.isNullOrBlank()) {
-//                    measures.add(measure)
-//                }
-//            }
-//
-//            return Meal(
-//                idMeal = idMeal,
-//                strMeal = strMeal,
-//                strInstructions = strInstructions,
-//                strMealThumb = strMealThumb,
-//                strTags = strTags,
-//                strIngredients = ingredients,
-//                strMeasures = measures
-//            )
-//        }
-//    }
 }
+
+
+data class CategoryResponse(
+    val categories: List<Category>
+)
+
+data class Category(
+    val idCategory: String,
+    val strCategory: String,
+    val strCategoryThumb: String,
+    val strCategoryDescription: String
+)
+
+data class MealBriefResponse(
+    val meals: List<MealBrief>
+)
+
+data class MealBrief(
+    val strMeal: String,
+    val strMealThumb: String,
+    val idMeal: String
+)

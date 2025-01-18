@@ -30,8 +30,11 @@
 
 
 
+
+
     <!-- ScrollView for cards -->
     <ScrollView
+        android:id="@+id/scroll_view"
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintTop_toBottomOf="@id/search_header"
@@ -40,12 +43,39 @@
         app:layout_constraintEnd_toEndOf="parent">
 
         <LinearLayout
-            android:id="@+id/card_container"
+            android:id="@+id/scroll_content"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:padding="8dp">
-            <!-- Recipe cards will be added dynamically here -->
+
+            <!-- Categories Section -->
+            <HorizontalScrollView
+                android:id="@+id/horizontal_scroll_view"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="none"
+                android:layout_margin="4dp">
+
+                <LinearLayout
+                    android:id="@+id/categories_container"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginStart="4dp"
+                    android:padding="5dp">
+                    <!-- Categories will be added dynamically here -->
+                </LinearLayout>
+            </HorizontalScrollView>
+
+            <!-- Recipe Cards Section -->
+            <LinearLayout
+                android:id="@+id/card_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <!-- Recipe cards will be added dynamically here -->
+            </LinearLayout>
         </LinearLayout>
     </ScrollView>
 

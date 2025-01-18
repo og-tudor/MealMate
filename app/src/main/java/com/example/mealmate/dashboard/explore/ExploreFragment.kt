@@ -1,8 +1,10 @@
 package com.example.mealmate.dashboard.home
 
 import Ingredient
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -36,6 +38,7 @@ class ExploreFragment : Fragment() {
     private var OUNCES_TO_GRAMS = 28
 
     private lateinit var cardContainer: LinearLayout
+    private lateinit var categoriesContainer: LinearLayout
     private lateinit var lottieAnimationView: LottieAnimationView
     private lateinit var animationHandler: AnimationHandler
     private lateinit var homeButton: ImageButton
@@ -66,6 +69,9 @@ class ExploreFragment : Fragment() {
         searchIcon = view.findViewById(R.id.search_icon_button)
         discoverButton.isSelected = true
 
+        categoriesContainer = view.findViewById(R.id.categories_container)
+        setUpCategories()
+
         // Set up search bar with click listener for the search icon
         generalFunctions = GeneralFunctions(requireActivity(), homeButton, discoverButton, settingsButton)
         generalFunctions.setupSearchBar(searchBarContainer, searchInput, searchIcon) { query ->
@@ -86,6 +92,121 @@ class ExploreFragment : Fragment() {
 
         return view
     }
+
+    @SuppressLint("MissingInflatedId")
+    private fun setUpCategories() {
+        // Clear the container first
+        categoriesContainer.removeAllViews()
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                // Fetch the categories from the API
+                val response = RetrofitInstance.api.getCategories()
+                val categoryList = response.categories  // This is a List<Category>
+
+                // Iterate over each Category object and inflate your layout
+                categoryList.forEach { category ->
+                    // Inflate the single-item layout
+                    val categoryItemView = layoutInflater.inflate(
+                        R.layout.explore_category_item,
+                        categoriesContainer,
+                        false
+                    )
+
+                    // Set margin programmatically
+                    val marginEndDp = 10f
+                    val marginEndPx = TypedValue.applyDimension(
+                        TypedValue.COMPLEX_UNIT_DIP,
+                        marginEndDp,
+                        resources.displayMetrics
+                    ).toInt()
+
+                    // Either update existing LayoutParams or create new ones if null.
+                    val params = categoryItemView.layoutParams as? ViewGroup.MarginLayoutParams
+                        ?: ViewGroup.MarginLayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT
+                        )
+                    params.marginEnd = marginEndPx
+                    categoryItemView.layoutParams = params
+
+                    // Find the TextView in explore_category_item.xml
+                    val categoryTextView = categoryItemView.findViewById<TextView>(R.id.category_name)
+
+                    // Set the text to the category's title
+                    categoryTextView.text = category.strCategory
+
+                    // Add a click listener that navigates to the category's recipes
+                    categoryItemView.setOnClickListener {
+                        fetchMealsForCategory(category.strCategory)
+                    }
+
+                    // Finally, add the inflated view to the container
+                    categoriesContainer.addView(categoryItemView)
+                }
+
+            } catch (e: Exception) {
+                Log.e("ExploreFragment", "Error fetching categories: ${e.message}")
+                Toast.makeText(requireContext(), "Error fetching categories", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+
+    private fun fetchMealsForCategory(category: String) {
+        // Clear existing recipe cards
+        cardContainer.removeAllViews()
+        // Show animation while loading
+        animationHandler.showAnimation()
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                // 1. Fetch brief meals by category (with limited fields)
+                val briefResponse = RetrofitInstance.api.getMealsByCategory(category)
+                val briefMeals = briefResponse.meals
+
+                if (briefMeals.isNullOrEmpty()) {
+                    Toast.makeText(requireContext(), "No meals found for $category", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+
+                // 2. For each brief meal, fetch the full details using getMealById
+                for (mealBrief in briefMeals) {
+                    try {
+                        val fullResponse = RetrofitInstance.api.getMealById(mealBrief.idMeal)
+                        val fullMeal = fullResponse.meals.firstOrNull()
+
+                        fullMeal?.let { meal ->
+                            val convertedIngredientsWithMeasures = meal.getIngredientsWithMeasures().map { (measure, ingredient) ->
+                                Ingredient(name = ingredient, quantity = convertMeasureToGrams(measure))
+                            }
+
+                            val recipe = Recipe(
+                                id = meal.idMeal,
+                                title = meal.strMeal,
+                                imageUrl = meal.strMealThumb,
+                                instructions = meal.strInstructions,
+                                ingredientsWithQuantities = convertedIngredientsWithMeasures,
+                                recipeCategory = meal.strCategory ?: ""
+                            )
+                            addCardToContainer(recipe)
+                        }
+                    } catch (e: Exception) {
+                        Log.e("fetchMealsForCategory", "Error fetching meal id ${mealBrief.idMeal}: ${e.message}")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("fetchMealsForCategory", "Error fetching meals for $category: ${e.message}")
+                Toast.makeText(requireContext(), "Error fetching meals for $category", Toast.LENGTH_SHORT).show()
+            } finally {
+                animationHandler.hideAnimation()
+            }
+        }
+    }
+
+
+
+
 
     private fun makeSearchApiCall(query: String) {
         // Capitalize the first letter of the search query
