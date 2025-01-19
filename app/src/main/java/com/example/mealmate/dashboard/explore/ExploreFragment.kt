@@ -50,6 +50,7 @@ class ExploreFragment : Fragment() {
     private lateinit var generalFunctions: GeneralFunctions
     private var cardsLoaded = 0
 
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -138,6 +139,16 @@ class ExploreFragment : Fragment() {
 
                     // Add a click listener that navigates to the category's recipes
                     categoryItemView.setOnClickListener {
+                        // Reset background to default for all categories
+                        for (i in 0 until categoriesContainer.childCount) {
+                            val child = categoriesContainer.getChildAt(i)
+                            val childTextView = child.findViewById<TextView>(R.id.category_name)
+                            childTextView.setBackgroundResource(R.drawable.recipe_tag_background)
+                        }
+                        // set the background to selected for the clicked category
+                        categoryTextView.setBackgroundResource(R.drawable.recipe_tag_background_selected)
+
+                        // Fetch meals for the selected category
                         fetchMealsForCategory(category.strCategory)
                     }
 
