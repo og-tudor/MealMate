@@ -14,3 +14,5 @@
 .cxx
 local.properties
 app/.idea/modules.xml
+app/src/main/assets/drive_service_account.json
+venv/
